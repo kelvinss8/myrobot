@@ -57,7 +57,7 @@ C3_X, C3_W = 810, 320                 # orin（右移 14：与运控板框留 6p
 TC_X, TC_W = 1146, 394                # 工具链（纵贯）
 PAD = 8
 BOARD_Y0 = 76                                        # 板框顶（含框内标题条带，标题被框包住）
-ROW_H = [330, 78, 102, 126]           # 业务/框架/OS(含外包框标题带)/驱动(含传感直连内容)（部分框内四层）
+ROW_H = [330, 78, 102, 144]           # 业务/框架/OS(含外包框标题带)/驱动(含传感直连内容)（部分框内四层）
 HW_H = 112                            # 硬件层（板框内、部分框外；rk 侧含外包框标题带）
 EXT_Y, EXT_H = 4, 40                 # 启元云端大模型带（贴顶，与板框留距）
 
@@ -111,7 +111,8 @@ os_c3 = [('Ubuntu 22.04.5 · L4T R36.4.4', False),
 # 驱动层：传感直连在前（hal_camera 显式标注所连相机与视频流用途，→ 为板内流路径），底层驱动在后
 dr_c1 = [('hal_camera→ox05bis 左目：Agent 人脸/手势@NPU', False),
          ('└ nv12_l→rtsp 供 App 看相机 · BMI08 IMU', False),
-         ('exposure：5×ToF 曝光/板间同步（控制面）', False),
+         ('exposure 进程：经 I2C 给 5×ToF 下发曝光参数', False),
+         ('（控制面；ToF 深度数据不经过运控板）', False),
          ('配件：rc · 圈圈 · insta360 · resource_manager', False),
          ('hal_sensor：★bms/touch · SetServo · 灯语', False),
          ('驱动：Mali/RKNPU · rkcif+max96724 · MPP/RGA', False)]
