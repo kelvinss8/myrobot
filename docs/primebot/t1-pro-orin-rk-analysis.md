@@ -1082,9 +1082,9 @@ sequenceDiagram
 ```
 
 读图要点（实测佐证）：
-1. **语义往返 ~62s**：语音指令到首个动作（起身）间隔 62s，为云端 LLM 会话（含意图判定与话术生成）+ 任务仲裁链路的总时延；本地链路（Agent→TE→MC）毫秒级。
+1. **语义往返 ~62s 与「本地 NLU 云优先」仲裁**：语音指令到首个动作（起身）间隔 62s，为云端 LLM 会话（含意图判定与话术生成）+ 任务仲裁链路的总时延；本地链路（Agent→TE→MC）毫秒级。**板上其实有本地规则式 NLU**（`aimrt_agent/cfg/t1/nlu_rules.json` v1.4：语气词归一化＋方向/技能实体＋关键词意图——趴下/坐下/站起/变形/**跳舞（含「给我跳个舞」原句）**/跟随等，另 `fuzzy_match_config.json` 模糊匹配阈值 0.6、`skills.json` 技能表），但 `nlu_arbitration_config.json` 为 **`online_priority`（cloud_timeout_ms=2000，置信度阈值 0.5）**——在线时云端优先，云端 2s 超时或离线时本地 NLU 接管：即"简单意图本地秒回"的能力在，只是在线模式下被策略性让位给云端（保证长尾指令口径统一）。
 2. **跳舞本体是 RL 策略**：`QUADRUPED_LOCOMOTION_DANCE(109)` 映射 `rl/quad_walk_dance.yaml`→onnxruntime 在隔离核 CPU3 实时推理（动作库含 `douyin_3500`、`q1_danceGo`、`q1_ladingwu2` 等多种舞曲策略，另有 CSV 轨迹模仿舞 `BIPED_MIMIC_DANCE_*`）。
-3. **多模态反馈同步**：TTS（云端 opus→audio_manager 播放）、胸屏表情（PlayEmotion）、灯带灯语（LedStripCommand + lumina 联动）与动作并行下发——UC1 期间 display_ui CPU 9.1%→28.5%（表情渲染约 3 倍）、audio_manager 2.4%→3.0% 微升、agent 104.3%→128.5%（基线为快照重测值，见 6.3）。
+3. **多模态反馈同步与两级 TTS**：开放回答为云端 opus→audio_manager 播放；**固定话术为本地直答**——`cfg/t1/audio_pre_cache/` 预缓存 83 条云端 TTS 合成结果（opus，音色 linksoul/mars_bigtts_v1，「我在呢～」「好的，跟随取消」「关机中，请稍后」等），另有 `cfg/t1/audio/` 预置音效/歌曲 20 个（dance2/小星星/变形音效等）——秒回不依赖网络；胸屏表情（PlayEmotion）、灯带灯语（LedStripCommand + lumina 联动）与动作并行下发——UC1 期间 display_ui CPU 9.1%→28.5%（表情渲染约 3 倍）、audio_manager 2.4%→3.0% 微升、agent 104.3%→128.5%（基线为快照重测值，见 6.3）。
 4. **前置姿态处理**：机器人当时趴卧，TE 先经 SetMcAction 起身到四足站立（whole_body 规则 `block_posture: LYING_DEFAULT…` 趴卧禁止直接跳全身舞），舞毕自主 `QUADRUPED_TO_BIPED_ROTATE` 转双足站立收势。
 
 #### 6.2.2 UC2 姿态切换「趴下 → 四足站立」
@@ -1503,7 +1503,7 @@ sequenceDiagram
 
 **排版口径**：**纵向（列）**按部署域切分为三部分——运控板 rk 的「交互业务（非实时）」与「运控执行（实时）」两列 + 大脑板 orin 的「复杂感知与规划」一列；**横向（行）**自上而下为**具身业务层 → 具身框架层 → OS 层 → 驱动层 → 硬件层**五层（即自底向上：硬件→驱动→OS→框架→业务）；**最右侧为纵贯全部层级的「工具链」大框**。因 mermaid 自动布局无法锁定矩阵式行列顺序，本图由脚本生成 **SVG 矢量图**（`figures/gen_fig_7_1.py` → `figures/fig-7-1-layered-arch.svg`，仓库同时提供 PNG 版 `fig-7-1-layered-arch.png`），行列位置精确可控，并直接画出板内/跨板数据流与工具链注入连线。按 4+1 视图口径，**本图即逻辑视图**：以具身业务层的功能模块（职责+接口★）为主体，其下框架/OS/驱动层与硬件层作为物理承载一并框出（嵌套结构：**板框 ⊃ 部分框 ⊃ 业务/框架/OS/驱动四层；硬件层在板框内、部分框外**）；模块间接口协作另见 §7.4，场景串联见 §6.2。
 
-![图 7-1 逻辑视图（双板纵切 × 五层横切 × 工具链纵贯）](figures/fig-7-1-layered-arch.png?v=20261102d)
+![图 7-1 逻辑视图（双板纵切 × 五层横切 × 工具链纵贯）](figures/fig-7-1-layered-arch.png?v=20261102e)
 
 > **图 7-1 读法**：**板框**（运控板 rk3576 / 大脑板 Orin Nano）⊃ **部分框**（交互业务（非实时）/ 运控（实时｜隔离核）/ 复杂感知与规划，各含具身业务→框架→OS→驱动四层，上层依赖下层）（正文为缩略显示，点击图片可放大至原生分辨率）；**硬件层**在板框内、部分框正下方（**rk 侧两格外包统一框：rk3576 8 核＝4×A72 大核＋4×A53 小核**，内格细分业务核〔4×A72＋2×A53〕与 2×隔离小核 CPU2/CPU3）；**OS 层 rk 两列同属一个 Ubuntu 22.04.5 实例**（外包统一框；两格内容侧重调度——业务格：interaction/system/auxiliary slice + CFS，运控格：isolcpus=2,3 + SCHED_RR 钉核）；**具身业务层内每模块独立成框，框序自上而下=依赖方向（上=对外接口/依赖方，下=被依赖底座与数据源）**；最右列为**工具链**纵贯（**开发工具 → 调测工具 → 运维链 → 三方依赖包**〔多媒体与图像 · UI 与音频 · 系统与网络服务〕**→ APP 应用 → SDK 二次开发包**；**传感直连内容已并入各板驱动层格**——rk 格以 hal_sensor/hal_camera(ox05bis)/exposure 为前，orin 格以 hal_rgbd/hal_camera(x5b) 为前）；**①②③通信线统一画在图底部**。
 > **连线与交互**（图上带编号的箭头）：**① 板内**（rk 业务⇄运控，iceoryx/DDS）——task_engine→★SetMcAction/velocity ↓，mc→★mc/common/state ↑；**② 跨板·任务与感知**（rk 业务⇄orin，内部以太网 10.1.1.0/24 · FastDDS 域 0）——FollowTaskCtrl/★navi 指令 ↓，★follow_candidates/点云/代价图、/odom·/tf ↑（只走结果级数据，相机原图板内消化）；**③ 跨板·速度直连**（orin→MC）——nav2/follow/运镜发布 velocity(pnc/follow)，MC 按 SetMcInputSource 仲裁；**外部接入**——App→app_proxy(TRRO/鉴权)、**云 LLM⇄Agent（HTTPS/TLS 443 · aiem-gw.agibot.com /v1/session：对话/意图，顶部「启元云端大模型」带即此链路，仅连运控板；2026-10-31 实测大脑板零云进程/零外部连接）**、云→cloud_proxy(MQTT/TLS：状态/OTA)、遥控器→rc(蓝牙)、圈圈→connx(BLE+UWB)、Insta360→insta360(WiFi)，全部终结于 rk；PC ★接口面 FastDDS 直连双板；**虚线**=工具链注入。模块级全量接口见 §7.4，连接视角见 §7.2。

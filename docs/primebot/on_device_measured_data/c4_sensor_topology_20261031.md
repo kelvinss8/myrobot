@@ -94,3 +94,31 @@
 **结论**：两板 hal_camera 同时各自采集，但读的是各自直连的不同相机——
 rk=交互视觉（人脸/手势，NPU 就地推理），orin=感知/导航（双目+ToF，TRT 就地推理）。
 "计算跟着传感器走"，无跨板视频，无性能瓶颈。
+
+## 9. 语音/意图链路补测（2026-11-02，板恢复在线后清遗留待办）
+
+**两级 TTS 实锤**（`aimrt_agent/bin/cfg/t1/`）：
+- `audio_pre_cache/`：**83 条云端 TTS 预缓存 opus**（文件名=话术文本+md5+音色
+  linksoul_zh_male_tiancaitongsheng50+livelybro50/mars_bigtts_v1；含「我在呢～」
+  「好的，跟随取消」「关机中，请稍后」「halo，你可以叫我元仔…」等）——固定话术
+  合成一次即缓存，秒播不依赖网络；本地无 TTS 合成引擎
+- `audio/`：预置音效/歌曲 wav ×20（dance2/dance4、transform2to4/4to2、小星星/
+  生日歌/茉莉花/送别、check_internet 等）
+- `nlg/nlg_config_{zh,en,ja,ko,de,es,fr}.json`：7 语种回复文本模板
+
+**本地 NLU 存在（修正此前"无本地意图识别"结论）**：
+- `nlu_rules.json` v1.4：语气词归一化（请/帮我/麻烦…）＋否定/疑问词＋实体
+  （direction 方向词表、stoppable_skill）＋**关键词意图**：趴下/躺下/坐下/站起/
+  变形/**跳舞（keywords 含「给我跳个舞」原句）**/跟随…type=action→action 映射
+- `fuzzy_match_config.json`：enable=true，阈值 0.6，五级策略
+  exact→alias→language_mapping→partial→fuzzy（歌曲多语言映射）
+- `skills.json`：技能表（laugh/proud/wave_hands/shake_hands/fist_bump/hand_heart…）
+- `nlu_arbitration_config.json`：**mode=online_priority，cloud_timeout_ms=2000，
+  session_timeout_ms=3000，confidence_threshold=0.5** —— 在线时云端优先
+  （UC1「给我跳个舞」62s 云端往返的原因），云 2s 超时/离线时本地 NLU 接管
+
+**板间 RTT 实测**（orin→rk ping×5）：0.43/0.58/0.76/±0.13 ms —— 亚毫秒级，
+急停链路跨板段时延结论钉死（瓶颈为 ToF 帧周期，非网络）。
+
+**velocity 话题**：type=aimdk_msgs/msg/McLocomotionVelocity（自定义类型，
+概念同 Twist）；**Publisher count=9**（多源速度发布，MC 按 SetMcInputSource 仲裁）。
