@@ -24,20 +24,18 @@
 
 ### 1.1 网络拓扑（实测）
 
-三台设备同处 `10.1.1.0/24` 一个二层网段，**PC 是直连机器人内部以太网，不经过 rk 路由转发**。虚线大框内为**启元 T1 Pro 整机**（双板在机内），PC 与互联网/云端在机外：
+三台设备同处 `10.1.1.0/24` 一个二层网段，**PC 是直连机器人内部以太网，不经过 rk 路由转发**。虚线大框内为**启元 T1 Pro 整机**（双板在机内），开发者 PC 在机外：
 
 ```mermaid
-flowchart TB
-    CLOUD["互联网 / 云端（aiem-gw.primebot.cn）"]
+flowchart LR
+    PC["🖥 开发者 PC（机外）<br/>enp0s31f6: 10.1.1.99/24<br/>（有线直插机器人内部网口）"]
     subgraph T1PRO["◉ 启元 T1 Pro 整机（机内以太网 10.1.1.0/24 · YT9215RB 交换芯片）"]
         direction TB
         RK["rk3576 运控板（soc0）<br/>hostname: localhost<br/>eth0: 10.1.1.100/24（对外网关）<br/>wlan0: 192.168.10.113 (DHCP)<br/>p2p0: 192.168.88.88（自建热点，App 直连）<br/>USB 网卡: 192.168.43.100 (RNDIS)"]
         ORIN["Jetson Orin 大脑板（soc1）<br/>hostname: jetson<br/>unused0: 10.1.1.101/24（唯一网口）"]
         RK <--> |"内部以太网（板间业务流量）"| ORIN
     end
-    PC["🖥 开发者 PC（机外）<br/>enp0s31f6: 10.1.1.99/24<br/>（有线直插机器人内部网口）"]
-    PC <-.->|"有线同网段直连<br/>（不经 rk 路由转发）"| RK
-    CLOUD -.->|"WiFi 上联（仅 rk 有外联能力）"| RK
+    PC <-.->|"有线同网段直连<br/>（不经 rk 路由转发）"| T1PRO
 ```
 
 要点：
