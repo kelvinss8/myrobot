@@ -101,8 +101,9 @@ flowchart LR
 - 两板同为**统一内存（UMA）架构**：CPU/GPU/NPU 共享同一池 DDR，**没有独立显存**——这就是§6.3 中「GPU 显存无独立数值」的硬件根源。
 
 ```mermaid
-flowchart TB
-    subgraph RK3576["🖥 rk3576 SoC（瑞芯微 · 统一内存）——AI = CPU + NPU，GPU 只做图形"]
+flowchart LR
+    subgraph RK3576["🖥 运控板 · rk3576 SoC（瑞芯微 · 统一内存）<br/>AI = CPU + NPU，GPU 只做图形"]
+        direction TB
         RK_CPU0["CPU 簇 0：4× Cortex-A53 ≤2016MHz<br/>（CPU2=CAN 硬中断+device_manager 实时线程<br/>CPU3=MC 独占，见 §2.4）"]
         RK_CPU1["CPU 簇 1：4× Cortex-A72 ≤2208MHz<br/>（全部业务栈跑 CPU0/1/4-7）"]
         RK_GPU["Mali-G52 MC3 图形 GPU<br/>300–900MHz（仅胸屏/UI 渲染，非 AI）"]
@@ -110,7 +111,8 @@ flowchart TB
         RK_MM["多媒体块：MPP 4K 编解码 · RGA 2.2 · ISP"]
         RK_DDR["统一 DDR 8GB<br/>（CPU/GPU/NPU 共享，无独立显存）"]
     end
-    subgraph ORIN_SOC["🧠 Jetson Orin Nano Super SoC（NVIDIA · 统一内存）——AI = GPU"]
+    subgraph ORIN_SOC["🧠 大脑板 · Jetson Orin Nano Super SoC（NVIDIA · 统一内存）<br/>AI = GPU"]
+        direction TB
         O_CPU["6× Cortex-A78AE ≤1728MHz<br/>（@25W 模式调度上限 1344MHz）"]
         O_GPU["Ampere GPU：1024 CUDA + 32 Tensor Core<br/>306–918MHz（TensorRT 10.7 / CUDA 12.6，全部 .engine 推理）"]
         O_MM["多媒体引擎：NVDEC/NVENC/NVJPG/VIC/OFA<br/>（独立时钟 435–538MHz）"]
