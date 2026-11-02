@@ -1817,6 +1817,12 @@ flowchart LR
 5. **二开接入位与 7.2 的「一个 ROS 2 域」一致**：SDK 用户程序从 PC 通过 ★接口面直连任一板的任意服务/话题；板载部署时按官方《快速入门》§4 落位 `/robot/software/<your_module>/` 并注册进 process_manager 配置，即成为 7.2 图中 rk/orin 域内的新模块。
 6. **模块归类以启动清单为权威依据（2026-10-30 复核）**：rk 分层与成员按 `t1_v2d0_soc0_config.yaml` stages 注释 + cgroup slice（§6.4.2/6.4.3）重划——`audio_manager`/`display_ui` 属 interaction.slice 故从「基础服务层」移入交互层；`mc`+`device_manager` 同属 realtime.slice 故同层；`sm`/`hds` 在 manifest 注释中为「系统状态监控」故移入系统与运维层；`lumina`/`scene_engine` 功能属交互表现但 slice=system（图中已注记）。此前遗漏的 **device_manager、scene_engine、resource_manager、abox、rk 侧 hal_camera/hal_rgbd 实例**已补齐（manifest stages 全部应用与图中框一一核对无缺漏；`aimrt_pulsecore` 部署未启动不入图）。子系统更名对照：业务与交互层→**交互与业务层**、基础服务层→**传感与外设接入层**（原音频/胸屏上移、系统类移出）、感知算法层→**感知与融合层**、导航规划层→**导航与跟随层**（对齐 manifest「跟随算法节点/导航算法模块」语义）。
 
+### 7.6 值得借鉴的点
+
+1. 视频不出板、板间传结果 --> “计算跟着传感器走”的架构。
+2. 按业务对时延确定性要求，算力要进行纵切（隔离核）。
+3. 关节控制权要有仲裁（抢占+超时）：全系统有 11 个模块都想发速度指令——比如：遥控器、App、跟随、导航、运镜……如果都往同一个话题里发，机器人当场精神分裂。 启元的解法是：任何模块发速度之前，必须先调 SetMcInputSource 抢方向盘（带优先级、带超时），高优先级能抢低优先级，超时默认 1 秒，到点自动松手。
+
 ---
 
 <a id="sec8"></a>
