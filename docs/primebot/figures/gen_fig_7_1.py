@@ -81,7 +81,7 @@ BOARD_BOT = HW_BOT + PAD                              # 776
 BIZ_COLS = [
  [  # rk·交互业务：对外接口与依赖方在上（传感直连内容已并入驱动层格，运维链移入工具链列，板基座不画）
   ('housekeeper + app_proxy', ['App 接入鉴权 · 网络/蓝牙/权限（ConnectRobot）']),
-  ('Agent 智能体（本地对话代理）', ['语音前端 VAD/AEC/唤醒/ASR+视觉@NPU', '云端 LLM 对话客户端（LLM 部署在云端）', '固定话术本地直答（快）· 开放问答走云端', '★asr_result 话题发布：识别文本，PlayTts 播报服务', '意图→semantic_intent(话题)→task_engine 执行']),
+  ('Agent 智能体（本地对话代理）', ['语音前端 VAD/AEC/唤醒/ASR+视觉@NPU', '云端 LLM 对话客户端（LLM 部署在云端）', '固定话术本地直答（快）· 开放问答走云端', '发布★asr_result(识别文本)·提供PlayTts播报服务', '意图→semantic_intent(话题)→task_engine 执行']),
   ('task_engine 任务引擎', ['AmRequest 仲裁 · 长任务编排']),
   ('SM 状态机', ['sm/system_state · SmNodeService 驱动各应用']),
   ('交互呈现', ['audio_manager（★播放/音量）· display_ui 胸屏', 'lumina 灯效 · scene_engine 场景']),
