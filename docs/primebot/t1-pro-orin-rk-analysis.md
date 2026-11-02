@@ -1557,8 +1557,8 @@ flowchart TB
         end
         subgraph RK_SEN["传感与外设接入层"]
             HAL0["传感器 HAL soc0<br/>/hal_sensor_soc0（BMS/触摸/灯带/颈部灯/舵机/上下电）"]
-            HALC0["相机 HAL rk 实例<br/>（相机设备规则/曝光，iceoryx 为主）"]
-            HALR0["ToF/RGBD HAL rk 实例<br/>（与 orin 同一交付物按机型配置）"]
+            HALC0["相机 HAL（rk）：hal_camera(rk 实例)<br/>采集头部交互相机 ox05bis 左目 2592×1944@10fps<br/>+ 头部 IMU（BMI08）→ bgr_camera_l/nv12_l（iceoryx 板内）"]
+            HALR0["ToF 曝光控制 exposure<br/>（hal_rgbd 包内进程，进程名 hal_rgbd）<br/>I2C 直控 5×ToF 曝光/滤波 · inter_board 板间同步"]
             ODOM["足式里程计 legged_odom<br/>/legged_odom_node（odom/tf · 跟随算法节点@rk）"]
             ACC["配件接入：rc 遥控器 · connx 圈圈（quanji）<br/>insta360 云台 · rtsp_server · resource_manager 资源/拍照"]
         end
@@ -1573,8 +1573,8 @@ flowchart TB
     subgraph ORIN["🧠 大脑板 Jetson Orin Nano（soc1 · 10.1.1.101 · 6×A78AE + Ampere GPU）"]
         direction TB
         subgraph OR_HAL["传感器接入层（manifest 归类：传感器）"]
-            HALR["ToF/RGBD HAL<br/>/hal_rgbd_node（头部 5 目 ToF）"]
-            HALC["相机 HAL<br/>/hal_camera·/hal_camera_1（双目/鱼眼/彩色+头部 IMU）"]
+            HALR["ToF 数据面 HAL：/hal_rgbd_node<br/>5×ToF 深度→点云（ofilm_tof/tofb 驱动→pmd_royale）"]
+            HALC["相机 HAL（orin）：/hal_camera·/hal_camera_1<br/>双目 RGB 2×ofilm_x5b 5MP（head_stereo l/r，图像走 iceoryx 板内）"]
             HAL1["传感器 HAL soc1<br/>/hal_sensor_soc1（ADU 电源板/温度）"]
         end
         subgraph OR_ALGO["感知与融合层（感知独立模块 + 跟随算法节点）"]
@@ -1593,7 +1593,8 @@ flowchart TB
 
     subgraph HW["⚙ 本体硬件域（机身之内）"]
         JOINT["14× 关节执行器 + 主控 MCU<br/>挂 CAN0/CAN1 总线"]
-        SENS["本体传感器：BMS · 触摸 · 灯带<br/>舵机 · 躯干 IMU · 5 目 ToF · 相机阵列 · ADU"]
+        SENSRK["运控板直连硬件：<br/>头部交互相机 ox05bis 5MP（GMSL max96724→rkcif）<br/>头部 IMU（BMI08）· 本体传感：BMS/触摸/灯带/颈部灯/舵机/躯干 IMU"]
+        SENSOR["大脑板直连硬件（OFILM 七路模组）：<br/>双目 RGB 2×x5b 5MP · 5×ToF（前主视 main+机身 front/rear/left/right）<br/>ADU 电源板/温度"]
     end
 
     %% 工具链（纵贯侧框，按层注入两板）
@@ -1609,16 +1610,20 @@ flowchart TB
     I360 -. "WiFi" .-> ACC
 
     %% 双板互联
-    RK <-->|"内部以太网 10.1.1.0/24<br/>FastDDS 域 0 · PTP(ptp4l)+chrony 时钟同步<br/>（相机图/点云/目标↓ · 状态/指令↑）"| ORIN
+    RK <-->|"内部以太网 10.1.1.0/24<br/>FastDDS 域 0 · PTP(ptp4l)+chrony 时钟同步<br/>（仅结果级：点云/目标/代价图/指令 ↑↓ · soc_sync/inter_board 同步<br/>相机原图不出板——实测板间仅 ~2Mbps）"| ORIN
 
-    %% rk 内部 → 硬件
+    %% rk → 其直连硬件
     MC -- "关节指令（1kHz 级实时环）" --> CANIRQ -- "CAN 总线" --> JOINT
-    HAL0 -- "I2C/SPI/UART" --> SENS
+    HAL0 -- "I2C/SPI/UART" --> SENSRK
+    HALC0 -- "GMSL(max96724)→rkcif + IIO(IMU)" --> SENSRK
 
-    %% orin 内部 → 传感器
-    HALR -- "MIPI-CSI/USB" --> SENS
-    HALC -- "MIPI-CSI" --> SENS
-    HAL1 -- "串口" --> SENS
+    %% orin → 其直连硬件
+    HALC -- "tegra-video / GMSL" --> SENSOR
+    HALR -- "MIPI-CSI（深度数据面）" --> SENSOR
+    HAL1 -- "串口" --> SENSOR
+
+    %% ToF 控制面在 rk、数据面在 orin（同一 OFILM 模组）
+    HALR0 -.->|"I2C 控制总线：曝光/滤波下发<br/>（控制面在运控板，数据面在大脑板）"| SENSOR
 ```
 
 读图要点（与 §1–§3、§6.4 实测对应）：
