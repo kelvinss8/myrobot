@@ -994,7 +994,7 @@ flowchart LR
     end
     subgraph RK["🖥 运控板 rk"]
         direction TB
-        subgraph RKI["Agent 交互链（aimrt_agent）"]
+        subgraph RKI["Agent 智能体（aimrt_agent 进程内）"]
             FE["omnis_sdk 4.0.0 语音前端<br/>DTLN AEC(MNN) + silero VAD(ORT)"]
             WAKE["讯飞 VTN 唤醒 + KWS(sherpa-onnx)"]
             ASR["ASR（讯飞 ESR/听写）"]
@@ -1015,7 +1015,7 @@ flowchart LR
     end
 
     USER -- "4+2ref 麦克风阵列" --> FE --> WAKE --> ASR
-    ASR -- "asr_result ★ / 语义" --> AGENT
+    ASR -- "进程内识别结果" --> AGENT
     AGENT <-->|"HTTPS/TLS /v1/session：<br/>↑语音+图像(2048×1536) · ↓意图+话术+TTS(opus 回传)"| LLM
     AGENT -- "semantic_intent + agent_show_text" --> TE
     TE ==>|"★ SetMcAction(109 跳舞)<br/>★ SetMcMotion / (趴姿先 SetMcAction 起身)"| MC
@@ -1024,6 +1024,7 @@ flowchart LR
     TE -->|"PlayEmotion ★ / SetFaceMode"| DISP
     TE -->|"★ LedStripCommand(舞蹈灯语)"| HAL0
     AUDIO -.->|"play_state 等音频状态（lumina 订阅联动）"| LUM
+    AGENT -.->|"发布★asr_result（识别文本，lumina/drp 订阅）"| LUM
     TE -.->|"interaction/state ★ 任务状态"| LUM
 ```
 
@@ -1042,9 +1043,11 @@ sequenceDiagram
     participant AUDIO as audio_manager
     participant DISP as display_ui 胸屏
     participant HAL0 as hal_sensor soc0
+    participant LUM as lumina 灯语
 
     U->>AG: 语音「请跳个舞」（4+2ref 麦克风阵列）
     Note over AG: 板内 FuncCall 链：omnis AEC(MNN)→silero VAD(ORT)→讯飞 ESR 识别
+    AG->>LUM: Topic ★/aima/agent/asr_result（识别文本广播——lumina 灯语联动/drp 录包订阅）
     AG->>LLM: FuncCall HTTPS /v1/session（多模态会话请求）
     Note over AG,LLM: 实测往返 ~62s（意图判定+话术生成）
     LLM-->>AG: 意图=跳舞 + 话术 + TTS 音频流(opus)
@@ -1115,6 +1118,7 @@ sequenceDiagram
     participant TE as task_engine (/task_engine)
     participant MC as MC (/mc_ros2_node · CPU3)
     participant HAL0 as hal_sensor soc0
+    participant LUM as lumina 灯语
 
     U->>AG: 语音「趴下」（板内语音链同 UC1）
     Note over AG: 意图获取：云端 LLM 或本地 NLU 规则（nlu_rules.json，FuncCall）
