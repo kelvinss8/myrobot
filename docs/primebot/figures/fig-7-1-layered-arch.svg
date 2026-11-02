@@ -24,11 +24,11 @@
 <text x="137" y="180" font-family="Noto Sans CJK SC" font-size="12.6" fill="#2c3a47">App 接入鉴权 · 网络/蓝牙/权限（ConnectRobot）</text>
 <rect x="128" y="195" width="342" height="118" rx="5" fill="#e9f2fc" stroke="#4f7396" stroke-width="2"/>
 <text x="137" y="216" font-family="Noto Sans CJK SC" font-size="13.6" fill="#17456e" font-weight="700">Agent 智能体（本地对话代理）</text>
-<text x="137" y="235" font-family="Noto Sans CJK SC" font-size="12.6" fill="#2c3a47">单进程：语音前端 VAD/AEC/唤醒/ASR+视觉@NPU</text>
-<text x="137" y="252" font-family="Noto Sans CJK SC" font-size="12.6" fill="#2c3a47">云端 LLM 会话客户端（LLM 本体在云端）</text>
+<text x="137" y="235" font-family="Noto Sans CJK SC" font-size="12.6" fill="#2c3a47">语音前端 VAD/AEC/唤醒/ASR+视觉@NPU</text>
+<text x="137" y="252" font-family="Noto Sans CJK SC" font-size="12.6" fill="#2c3a47">云端 LLM 对话客户端（LLM 部署在云端）</text>
 <text x="137" y="269" font-family="Noto Sans CJK SC" font-size="12.6" fill="#2c3a47">固定话术本地直答（快）· 开放问答走云端</text>
-<text x="137" y="286" font-family="Noto Sans CJK SC" font-size="12.6" fill="#2c3a47">★asr_result=识别文本 · PlayTts=播报服务</text>
-<text x="137" y="303" font-family="Noto Sans CJK SC" font-size="12.6" fill="#2c3a47">云端意图→semantic_intent→task_engine 执行</text>
+<text x="137" y="286" font-family="Noto Sans CJK SC" font-size="12.6" fill="#2c3a47">★asr_result 话题发布：识别文本，PlayTts 播报服务</text>
+<text x="137" y="303" font-family="Noto Sans CJK SC" font-size="12.6" fill="#2c3a47">意图→semantic_intent(话题)→task_engine 执行</text>
 <rect x="128" y="318" width="342" height="50" rx="5" fill="#e9f2fc" stroke="#4f7396" stroke-width="2"/>
 <text x="137" y="339" font-family="Noto Sans CJK SC" font-size="13.6" fill="#17456e" font-weight="700">task_engine 任务引擎</text>
 <text x="137" y="358" font-family="Noto Sans CJK SC" font-size="12.6" fill="#2c3a47">AmRequest 仲裁 · 长任务编排</text>
