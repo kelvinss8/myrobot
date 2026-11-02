@@ -3,7 +3,7 @@
 import re, sys
 from collections import defaultdict
 
-D = '/home/liqiliang/workspace/lql/projects/myrobot/appendix-c-data/'
+D = '/home/liqiliang/workspace/lql/projects/myrobot/docs/primebot/on_device_measured_data/'
 
 PHASES = [
     ("BASE", "14:27:53", "14:29:35"),

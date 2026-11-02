@@ -3,7 +3,7 @@
 import re
 from collections import defaultdict
 
-D = '/home/liqiliang/workspace/lql/projects/myrobot/appendix-c-data/'
+D = '/home/liqiliang/workspace/lql/projects/myrobot/docs/primebot/on_device_measured_data/'
 
 PKG_ALIAS = {
     'target_follow_perception': 'person_track', 'perception': 'percep',

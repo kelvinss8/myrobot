@@ -1,8 +1,13 @@
 #!/usr/bin/env python3
 # 生成 §7.1 逻辑视图（双板纵切 × 五层横切 × 工具链纵贯）SVG/PNG
 # 结构：板框 ⊃ 部分框（业务/框架/OS/驱动 四层）+ 硬件层格；①②③通信线画在图底部
-# 用法：python3 figures/gen_fig_7_1.py  →  figures/fig-7-1-layered-arch.svg / .png
+# 用法：python3 docs/primebot/figures/gen_fig_7_1.py（可在仓库任意目录执行）
+#       → docs/primebot/figures/fig-7-1-layered-arch.svg / .png
+import os
 FONT = "Noto Sans CJK SC"
+BASE = os.path.dirname(os.path.abspath(__file__))       # 输出与脚本同目录
+SVG_PATH = os.path.join(BASE, 'fig-7-1-layered-arch.svg')
+PNG_PATH = os.path.join(BASE, 'fig-7-1-layered-arch.png')
 
 def esc(s):
     return s.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
@@ -346,10 +351,10 @@ head = ['<?xml version="1.0" encoding="UTF-8"?>',
         f'<svg xmlns="http://www.w3.org/2000/svg" width="1560" height="{H}" viewBox="0 0 1560 {H}">',
         f'<rect x="0" y="0" width="1560" height="{H}" fill="#ffffff"/>']
 out = '\n'.join(head + S)
-open('figures/fig-7-1-layered-arch.svg', 'w', encoding='utf-8').write(out)
+open(SVG_PATH, 'w', encoding='utf-8').write(out)
 try:
     import cairosvg
-    cairosvg.svg2png(url='figures/fig-7-1-layered-arch.svg', write_to='figures/fig-7-1-layered-arch.png', scale=2.0)
+    cairosvg.svg2png(url=SVG_PATH, write_to=PNG_PATH, scale=2.0)
 except Exception as e:
     print('PNG 跳过（无 cairosvg）:', e)
-print(f'OK -> figures/fig-7-1-layered-arch.svg  ({len(out)} bytes, 画布 1560×{H}, 板底 {BOARD_BOT}px, 工具链底 {TC_BOT:.0f}px')
+print(f'OK -> {SVG_PATH}  ({len(out)} bytes, 画布 1560×{H}, 板底 {BOARD_BOT}px, 工具链底 {TC_BOT:.0f}px')

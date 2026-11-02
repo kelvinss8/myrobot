@@ -886,7 +886,7 @@ AimRT 的 protobuf RPC 经 ROS 2 桥暴露，**服务名是转义后的 proto �
 
 ## 6. 启元 T1 Pro 软件栈分析（包括：三方工具、软件包、框架，3 个 usecase 场景的启动、运行时状态、部署、静态资源占用）
 
-> **采集方式**：本章数据来自 2026-10-30 对两板的新一轮**只读**探测（`dpkg-query -W`/`pip3 list`/`ldd`/`strings`/`find -printf`/`systemctl cat`/`du`/`/proc/*/environ`/`/sys/fs/cgroup`）+ 一轮**人工交互式动态采样**（用户现场语音触发三个场景，采样器全程连续记录：两板 `top -b -d 3` 全进程快照、orin `tegrastats` 2Hz、rk devfreq(Mali GPU)/debugfs(rknpu NPU) 3s 周期、ROS 2 事件流 `ros2 topic echo` 毫秒级时间戳对齐场景边界）。除只读订阅外无任何写入、无服务调用。原始数据存档于 `appendix-c-data/`（c2_* 为正式采样轮）。
+> **采集方式**：本章数据来自 2026-10-30 对两板的新一轮**只读**探测（`dpkg-query -W`/`pip3 list`/`ldd`/`strings`/`find -printf`/`systemctl cat`/`du`/`/proc/*/environ`/`/sys/fs/cgroup`）+ 一轮**人工交互式动态采样**（用户现场语音触发三个场景，采样器全程连续记录：两板 `top -b -d 3` 全进程快照、orin `tegrastats` 2Hz、rk devfreq(Mali GPU)/debugfs(rknpu NPU) 3s 周期、ROS 2 事件流 `ros2 topic echo` 毫秒级时间戳对齐场景边界）。除只读订阅外无任何写入、无服务调用。原始数据存档于 `on_device_measured_data/`（c2_* 为正式采样轮）。
 > **版本基线**：与附录 A 相同固件 `qy2501_2_v2d2` soc0/soc1 `v1.0.0.5-R-202610050335`；全部 em 应用为 `release-v1.2.1.patch1004` 分支（2026-10-04/05 构建，每应用 `pipeline.json` 记录 commit），基础层 aimrte `v0.9.1-rc5.10`。
 
 ### 6.1 两板使用的工具、软件包与 AI 模型清单
@@ -1474,7 +1474,7 @@ sequenceDiagram
 
 ---
 
-> **本章数据存档**：动态采样原始日志（c2_rk_top/c2_rk_sys/c2_orin_top/c2_orin_tegra/c2_events/c2_markers + 进程与 cwd 快照）与分析脚本见仓库 `appendix-c-data/`；分析口径为阶段窗口均值，可按 markers 时间戳复算。
+> **本章数据存档**：动态采样原始日志（c2_rk_top/c2_rk_sys/c2_orin_top/c2_orin_tegra/c2_events/c2_markers + 进程与 cwd 快照）与分析脚本见仓库 `on_device_measured_data/`；分析口径为阶段窗口均值，可按 markers 时间戳复算。
 <a id="sec7"></a>
 
 ## 7. 整体架构与软件模块接口关系图（第 1–6 章实测的综合视图）
