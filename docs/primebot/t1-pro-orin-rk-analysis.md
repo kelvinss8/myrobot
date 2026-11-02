@@ -134,7 +134,6 @@ flowchart LR
         O_MM["多媒体引擎：NVDEC/NVENC/NVJPG/VIC/OFA<br/>（独立时钟 435–538MHz）"]
         O_DDR["统一 LPDDR5 8GB · 102.4GB/s<br/>（CPU/GPU 共享，无独立显存）"]
     end
-    RK_NPU ~~~ O_GPU
     RK_CPU0 & RK_CPU1 & RK_GPU & RK_NPU & RK_MM --- RK_DDR
     O_CPU & O_GPU & O_MM --- O_DDR
 ```
