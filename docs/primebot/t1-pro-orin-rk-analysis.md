@@ -1017,14 +1017,14 @@ flowchart LR
     USER -- "4+2ref 麦克风阵列" --> FE --> WAKE --> ASR
     ASR -- "进程内识别结果" --> AGENT
     AGENT <-->|"HTTPS/TLS /v1/session：<br/>↑语音+图像(2048×1536) · ↓意图+话术+TTS(opus 回传)"| LLM
-    AGENT -- "semantic_intent + agent_show_text" --> TE
+    AGENT -- "★asr_result(流式文本)+semantic_intent" --> TE
     TE ==>|"★ SetMcAction(109 跳舞)<br/>★ SetMcMotion / (趴姿先 SetMcAction 起身)"| MC
     MC -- "1kHz 级关节指令" --> CAN
     TE -->|"★ PlayTts"| AGENT --> TTSOUT --> AUDIO
     TE -->|"PlayEmotion ★ / SetFaceMode"| DISP
     TE -->|"★ LedStripCommand(舞蹈灯语)"| HAL0
     AUDIO -.->|"play_state 等音频状态（lumina 订阅联动）"| LUM
-    AGENT -.->|"发布★asr_result（识别文本，lumina/drp 订阅）"| LUM
+    AGENT -.->|"发布★asr_result（识别文本）→ task_engine 流式语义 / lumina 灯语订阅"| LUM
     TE -.->|"interaction/state ★ 任务状态"| LUM
 ```
 
@@ -1047,7 +1047,8 @@ sequenceDiagram
 
     U->>AG: 语音「请跳个舞」（4+2ref 麦克风阵列）
     Note over AG: 板内 FuncCall 链：omnis AEC(MNN)→silero VAD(ORT)→讯飞 ESR 识别
-    AG->>LUM: Topic ★/aima/agent/asr_result（识别文本广播——lumina 灯语联动/drp 录包订阅）
+    AG->>LUM: Topic ★/aima/agent/asr_result（识别文本——聆听/思考灯语联动）
+    AG->>TE: Topic ★/aima/agent/asr_result（流式文本 is_final 中间/终稿——本地语义兜底）
     AG->>LLM: FuncCall HTTPS /v1/session（多模态会话请求）
     Note over AG,LLM: 实测往返 ~62s（意图判定+话术生成）
     LLM-->>AG: 意图=跳舞 + 话术 + TTS 音频流(opus)
