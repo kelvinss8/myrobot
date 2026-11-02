@@ -1024,7 +1024,7 @@ flowchart LR
     TE -->|"PlayEmotion ★ / SetFaceMode"| DISP
     TE -->|"★ LedStripCommand(舞蹈灯语)"| HAL0
     AUDIO -.->|"play_state 等音频状态（lumina 订阅联动）"| LUM
-    AGENT -.->|"发布★asr_result（识别文本）→ task_engine 流式语义 / lumina 灯语订阅"| LUM
+    AGENT -.->|"发布★asr_result（识别文本）→ lumina 订阅做灯语联动"| LUM
     TE -.->|"interaction/state ★ 任务状态"| LUM
 ```
 
