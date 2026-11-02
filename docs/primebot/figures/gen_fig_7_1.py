@@ -62,7 +62,7 @@ C3_X, C3_W = 810, 320                 # orin（右移 14：与运控板框留 6p
 TC_X, TC_W = 1146, 394                # 工具链（纵贯）
 PAD = 8
 BOARD_Y0 = 76                                        # 板框顶（含框内标题条带，标题被框包住）
-ROW_H = [330, 78, 102, 144]           # 业务/框架/OS(含外包框标题带)/驱动(含传感直连内容)（部分框内四层）
+ROW_H = [358, 78, 102, 144]           # 业务/框架/OS(含外包框标题带)/驱动(含传感直连内容)（部分框内四层）
 HW_H = 112                            # 硬件层（板框内、部分框外；rk 侧含外包框标题带）
 EXT_Y, EXT_H = 4, 40                 # 启元云端大模型带（贴顶，与板框留距）
 
@@ -81,7 +81,7 @@ BOARD_BOT = HW_BOT + PAD                              # 776
 BIZ_COLS = [
  [  # rk·交互业务：对外接口与依赖方在上（传感直连内容已并入驱动层格，运维链移入工具链列，板基座不画）
   ('housekeeper + app_proxy', ['App 接入鉴权 · 网络/蓝牙/权限（ConnectRobot）']),
-  ('Agent 智能体', ['★asr_result/PlayTts · LLM 对话与意图']),
+  ('Agent 智能体（本地对话代理）', ['语音前端 VAD/AEC/唤醒/ASR · 视觉@NPU 认人', '云端 LLM 会话客户端（LLM 本体在云端）', '★asr_result/PlayTts · 意图→task_engine', 'TTS 播报（云 opus + 本地话术）']),
   ('task_engine 任务引擎', ['AmRequest 仲裁 · 长任务编排']),
   ('SM 状态机', ['sm/system_state · SmNodeService 驱动各应用']),
   ('交互呈现', ['audio_manager（★播放/音量）· display_ui 胸屏', 'lumina 灯效 · scene_engine 场景']),
