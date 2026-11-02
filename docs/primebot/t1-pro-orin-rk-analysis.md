@@ -1048,7 +1048,7 @@ sequenceDiagram
     U->>AG: 语音「请跳个舞」（4+2ref 麦克风阵列）
     Note over AG: 板内 FuncCall 链：omnis AEC(MNN)→silero VAD(ORT)→讯飞 ESR 识别
     AG->>LUM: Topic ★/aima/agent/asr_result（识别文本——聆听/思考灯语联动）
-    AG->>TE: Topic ★/aima/agent/asr_result（流式文本 is_final 中间/终稿——本地语义兜底）
+    AG->>TE: Topic ★/aima/agent/asr_result（流式文本 is_final 中间/终稿，task_engine 订阅）
     AG->>LLM: FuncCall HTTPS /v1/session（多模态会话请求）
     Note over AG,LLM: 实测往返 ~62s（意图判定+话术生成）
     LLM-->>AG: 意图=跳舞 + 话术 + TTS 音频流(opus)
