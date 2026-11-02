@@ -31,8 +31,8 @@ flowchart LR
     PC["🖥 开发者 PC（机外）<br/>enp0s31f6: 10.1.1.99/24<br/>（有线直插机器人内部网口）"]
     subgraph T1PRO["◉ 启元 T1 Pro 整机（机内以太网 10.1.1.0/24 · YT9215RB 交换芯片）"]
         direction TB
-        RK["rk3576 运控板（soc0）<br/>hostname: localhost<br/>eth0: 10.1.1.100/24（对外网关）<br/>wlan0: 192.168.10.113 (DHCP)<br/>p2p0: 192.168.88.88（自建热点，App 直连）<br/>USB 网卡: 192.168.43.100 (RNDIS)"]
-        ORIN["Jetson Orin 大脑板（soc1）<br/>hostname: jetson<br/>unused0: 10.1.1.101/24（唯一网口）"]
+        RK["rk3576 运控板（soc0）<br/>hostname: localhost<br/>eth0: 10.1.1.100/24（对外网关）<br/>wlan0: 192.168.10.113 (DHCP)<br/>p2p0: 192.168.88.88（自建热点，App 直连）&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>USB 网卡: 192.168.43.100 (RNDIS)"]
+        ORIN["Jetson Orin 大脑板（soc1）<br/>hostname: jetson<br/>unused0: 10.1.1.101/24（唯一网口）&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"]
         RK <--> |"内部以太网（板间业务流量）"| ORIN
     end
     PC <-.->|"有线同网段直连<br/>（不经 rk 路由转发）"| T1PRO
