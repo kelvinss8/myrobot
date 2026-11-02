@@ -34,22 +34,22 @@
                                             ┃          启元 T1 Pro 整机（机内以太网 10.1.1.0/24）           ┃
                                             ┃                                                               ┃
                                             ┃  ┌─────────────────────────────────────────────────────────┐  ┃
-┌────────────────────┐                      ┃  │ rk3576 运控板（soc0 · 主控/网关）                      │  ┃
+┌────────────────────┐                      ┃  │ rk3576 运控板（soc0 · 主控/网关）                       │  ┃
 │ 开发者 PC（机外）  │                      ┃  │                                                         │  ┃
-│                    │     有线同网段直连   ┃  │ eth0: 10.1.1.100/24（对外网关 · hostname: localhost）  │  ┃
+│                    │     有线同网段直连   ┃  │ eth0: 10.1.1.100/24（对外网关 · hostname: localhost）   │  ┃
 │ enp0s31f6:         │◄─────────────────────╪─►┤ wlan0: 192.168.10.113（DHCP 上联家庭 WiFi）             │  ┃
-│   10.1.1.99/24     │  （不经 rk 路由转发）┃  │ p2p0: 192.168.88.88（自建热点 · App 直连入口）         │  ┃
+│   10.1.1.99/24     │  （不经 rk 路由转发）┃  │ p2p0: 192.168.88.88（自建热点 · App 直连入口）          │  ┃
 │ （有线直插机器人   │                      ┃  │ USB: 192.168.43.100 (RNDIS 调试口)                      │  ┃
 │   内部网口）       │                      ┃  │                                                         │  ┃
 └────────────────────┘                      ┃  └────────────────────────────┬────────────────────────────┘  ┃
                                             ┃                               │ 内部以太网（板间业务流量）    ┃
                                             ┃                               │                               ┃
                                             ┃  ┌────────────────────────────┴────────────────────────────┐  ┃
-                                            ┃  │ Jetson Orin 大脑板（soc1 · 感知/规划）                 │  ┃
+                                            ┃  │ Jetson Orin 大脑板（soc1 · 感知/规划）                  │  ┃
                                             ┃  │                                                         │  ┃
-                                            ┃  │ unused0: 10.1.1.101/24（唯一网口 · 出网必经 rk 网关）  │  ┃
-                                            ┃  │ 板间业务：FastDDS 域 0 · 仅结果级数据                  │  ┃
-                                            ┃  │ （实测 ~2Mbps · 视频/点云不跨板）· hostname: jetson   │  ┃
+                                            ┃  │ unused0: 10.1.1.101/24（唯一网口 · 出网必经 rk 网关）   │  ┃
+                                            ┃  │ 板间业务：FastDDS 域 0 · 仅结果级数据                   │  ┃
+                                            ┃  │ （实测 ~2Mbps · 视频/点云不跨板）· hostname: jetson     │  ┃
                                             ┃  └─────────────────────────────────────────────────────────┘  ┃
                                             ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 ```
@@ -134,6 +134,7 @@ flowchart LR
         O_MM["多媒体引擎：NVDEC/NVENC/NVJPG/VIC/OFA<br/>（独立时钟 435–538MHz）"]
         O_DDR["统一 LPDDR5 8GB · 102.4GB/s<br/>（CPU/GPU 共享，无独立显存）"]
     end
+    RK_NPU ~~~ O_GPU
     RK_CPU0 & RK_CPU1 & RK_GPU & RK_NPU & RK_MM --- RK_DDR
     O_CPU & O_GPU & O_MM --- O_DDR
 ```
@@ -1016,14 +1017,14 @@ flowchart LR
 
     USER -- "4+2ref 麦克风阵列" --> FE --> WAKE --> ASR
     ASR -- "asr_result ★ / 语义" --> AGENT
-    AGENT <-->|"HTTPS/TLS 会话<br/>(上传语音/图像 2048×1536)"| LLM
+    AGENT <-->|"HTTPS/TLS /v1/session：<br/>↑语音+图像(2048×1536) · ↓意图+话术+TTS(opus 回传)"| LLM
     AGENT -- "semantic_intent + agent_show_text" --> TE
     TE ==>|"★ SetMcAction(109 跳舞)<br/>★ SetMcMotion / (趴姿先 SetMcAction 起身)"| MC
     MC -- "1kHz 级关节指令" --> CAN
     TE -->|"★ PlayTts"| AGENT --> TTSOUT --> AUDIO
     TE -->|"PlayEmotion ★ / SetFaceMode"| DISP
     TE -->|"★ LedStripCommand(舞蹈灯语)"| HAL0
-    LUM -.->|"订阅 play_state/interaction 等 9 路"| AUDIO
+    AUDIO -.->|"play_state 等音频状态（lumina 订阅联动）"| LUM
     TE -.->|"interaction/state ★ 任务状态"| LUM
 ```
 
