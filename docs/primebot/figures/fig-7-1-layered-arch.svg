@@ -24,7 +24,7 @@
 <text x="137" y="180" font-family="Noto Sans CJK SC" font-size="12.6" fill="#2c3a47">App 接入鉴权 · 网络/蓝牙/权限（ConnectRobot）</text>
 <rect x="128" y="195" width="342" height="118" rx="5" fill="#e9f2fc" stroke="#4f7396" stroke-width="2"/>
 <text x="137" y="216" font-family="Noto Sans CJK SC" font-size="13.6" fill="#17456e" font-weight="700">Agent 智能体（本地对话代理）</text>
-<text x="137" y="235" font-family="Noto Sans CJK SC" font-size="12.6" fill="#2c3a47">语音前端 VAD/AEC/唤醒/ASR+视觉@NPU</text>
+<text x="137" y="235" font-family="Noto Sans CJK SC" font-size="12.6" fill="#2c3a47">语音前端 VAD/AEC/唤醒/ASR+共用双目左目视觉@NPU</text>
 <text x="137" y="252" font-family="Noto Sans CJK SC" font-size="12.6" fill="#2c3a47">云端 LLM 对话客户端（LLM 部署在云端）</text>
 <text x="137" y="269" font-family="Noto Sans CJK SC" font-size="12.6" fill="#2c3a47">话术预缓存直答·意图在线云优先/本地NLU兜底</text>
 <text x="137" y="286" font-family="Noto Sans CJK SC" font-size="12.6" fill="#2c3a47">发布★asr_result(识别文本)·提供PlayTts播报服务</text>
@@ -95,8 +95,8 @@
 <rect x="6" y="704" width="84" height="144" rx="6" fill="#f5eff7" stroke="#9aa8b5" stroke-width="1"/>
 <text x="28" y="780" font-family="Noto Sans CJK SC" font-size="13" fill="#33414e" font-weight="700">驱动层</text>
 <rect x="122" y="704" width="354" height="144" rx="6" fill="#faf6fb" stroke="#a8b4c0" stroke-width="1"/>
-<text x="132" y="723" font-family="Noto Sans CJK SC" font-size="12.2" fill="#1f2933">hal_camera→ox05bis 左目：Agent 人脸/手势@NPU</text>
-<text x="132" y="740" font-family="Noto Sans CJK SC" font-size="12.2" fill="#1f2933">└ nv12_l→rtsp 供 App 看相机 · BMI08 IMU</text>
+<text x="132" y="723" font-family="Noto Sans CJK SC" font-size="12.2" fill="#1f2933">hal_camera→共用双目左目：Agent 人脸/手势@NPU</text>
+<text x="132" y="740" font-family="Noto Sans CJK SC" font-size="12.2" fill="#1f2933">（与 orin 同一组双目·双路 GMSL 送两板）</text>
 <text x="132" y="757" font-family="Noto Sans CJK SC" font-size="12.2" fill="#1f2933">exposure 进程：经 I2C 给 5×ToF 下发曝光参数</text>
 <text x="132" y="774" font-family="Noto Sans CJK SC" font-size="12.2" fill="#1f2933">（控制面；ToF 深度数据不经过运控板）</text>
 <text x="132" y="791" font-family="Noto Sans CJK SC" font-size="12.2" fill="#1f2933">配件：rc · 圈圈 · insta360 · resource_manager</text>
@@ -119,7 +119,7 @@
 <text x="132" y="915" font-family="Noto Sans CJK SC" font-size="12.2" fill="#1f2933" font-weight="700">业务核 = 4×A72 大核 + 2×A53 小核</text>
 <text x="132" y="932" font-family="Noto Sans CJK SC" font-size="12.2" fill="#1f2933">Mali-G52 图形 GPU · NPU 6TOPS · 统一 DDR 8GB</text>
 <text x="132" y="949" font-family="Noto Sans CJK SC" font-size="12.2" fill="#1f2933">eMMC 116.5G · WiFi/BT · YT9215RB+RJ45</text>
-<text x="132" y="966" font-family="Noto Sans CJK SC" font-size="12.2" fill="#1f2933">头部相机+IMU · 本体传感（GMSL/rkcif 直连）</text>
+<text x="132" y="966" font-family="Noto Sans CJK SC" font-size="12.2" fill="#1f2933">共用双目左目+IMU · 本体传感（双路 GMSL）</text>
 <rect x="512" y="898" width="258" height="84" rx="6" fill="#fef6f1" stroke="#a8b4c0" stroke-width="1"/>
 <text x="522" y="915" font-family="Noto Sans CJK SC" font-size="12.2" fill="#1f2933" font-weight="700">隔离小核 ×2（CPU2/CPU3）</text>
 <text x="522" y="932" font-family="Noto Sans CJK SC" font-size="12.2" fill="#1f2933">CPU2：CAN0/1 硬中断 + dm 实时线程</text>
@@ -128,7 +128,7 @@
 <rect x="822" y="874" width="296" height="112" rx="6" fill="#fef6f1" stroke="#a8b4c0" stroke-width="1"/>
 <text x="832" y="918" font-family="Noto Sans CJK SC" font-size="12.2" fill="#1f2933">Orin（6×A78AE · Ampere 1024CUDA+32TC）</text>
 <text x="832" y="935" font-family="Noto Sans CJK SC" font-size="12.2" fill="#1f2933">LPDDR5 8GB · 102.4GB/s · NVMe 238.5G</text>
-<text x="832" y="952" font-family="Noto Sans CJK SC" font-size="12.2" fill="#1f2933">OFILM GMSL 模组：2×5MP RGB + 5 目 ToF</text>
+<text x="832" y="952" font-family="Noto Sans CJK SC" font-size="12.2" fill="#1f2933">OFILM 七路模组：双目(与 rk 共用) + 5×ToF</text>
 <rect x="1146" y="76" width="394" height="910" rx="10" fill="#fffdf4" stroke="#c9a24b" stroke-width="1.2"/>
 <text x="1225" y="98" font-family="Noto Sans CJK SC" font-size="13" fill="#7a5c14" font-weight="700">◆ 工具链（纵贯两板 · 版本见 §6.1）</text>
 <rect x="1154" y="112" width="378" height="77.80000000000001" rx="5" fill="#ffffff" stroke="#d8c48a" stroke-width="1"/>
@@ -174,5 +174,5 @@
 <line x1="1146" y1="1048" x2="1130" y2="1048" stroke="#35495e" stroke-width="1.3" stroke-dasharray="5,4"/><polygon points="1130,1048 1139,1044 1139,1052" fill="#35495e"/><polygon points="1146,1048 1137,1052 1137,1044" fill="#35495e"/>
 <text x="6" y="1104" font-family="Noto Sans CJK SC" font-size="11.2" fill="#5b6b7a">图例：箭头①②③＝板内/跨板数据流（★为官方接口）；虚线＝工具链注入（运行时库/构建产物/调测工具）；层间自上而下＝上层依赖下层。</text>
 <text x="6" y="1120.6" font-family="Noto Sans CJK SC" font-size="11.2" fill="#5b6b7a">业务层模块框序：自上而下＝依赖方向（上＝对外接口/依赖方，下＝被依赖底座与数据源）。</text>
-<text x="6" y="1137.1999999999998" font-family="Noto Sans CJK SC" font-size="11.2" fill="#5b6b7a">列内链：运控列自上而下＝mc→CAN 驱动→14 执行器（1kHz 实时环）；相机/ToF 原图均板内 iceoryx 消化不跨板：rk 头部相机→Agent 视觉/rtsp·App，orin GMSL 模组→感知融合；ToF 控制面在 rk（exposure）、数据面在 orin。</text>
+<text x="6" y="1137.1999999999998" font-family="Noto Sans CJK SC" font-size="11.2" fill="#5b6b7a">列内链：运控列自上而下＝mc→CAN 驱动→14 执行器（1kHz 实时环）；相机/ToF 原图均板内 iceoryx 消化不跨板：rk 共用双目左目→Agent 视觉/rtsp·App，orin 双目→感知融合；ToF 控制面在 rk（exposure）、数据面在 orin；双目由 OFILM 双路 GMSL 模组同时送两板。</text>
 </svg>

@@ -81,7 +81,7 @@ BOARD_BOT = HW_BOT + PAD                              # 776
 BIZ_COLS = [
  [  # rk·交互业务：对外接口与依赖方在上（传感直连内容已并入驱动层格，运维链移入工具链列，板基座不画）
   ('housekeeper + app_proxy', ['App 接入鉴权 · 网络/蓝牙/权限（ConnectRobot）']),
-  ('Agent 智能体（本地对话代理）', ['语音前端 VAD/AEC/唤醒/ASR+视觉@NPU', '云端 LLM 对话客户端（LLM 部署在云端）', '话术预缓存直答·意图在线云优先/本地NLU兜底', '发布★asr_result(识别文本)·提供PlayTts播报服务', '意图→semantic_intent(话题)→task_engine 执行']),
+  ('Agent 智能体（本地对话代理）', ['语音前端 VAD/AEC/唤醒/ASR+共用双目左目视觉@NPU', '云端 LLM 对话客户端（LLM 部署在云端）', '话术预缓存直答·意图在线云优先/本地NLU兜底', '发布★asr_result(识别文本)·提供PlayTts播报服务', '意图→semantic_intent(话题)→task_engine 执行']),
   ('task_engine 任务引擎', ['AmRequest 仲裁 · 长任务编排']),
   ('SM 状态机', ['sm/system_state · SmNodeService 驱动各应用']),
   ('交互呈现', ['audio_manager（★播放/音量）· display_ui 胸屏', 'lumina 灯效 · scene_engine 场景']),
@@ -114,8 +114,8 @@ os_c3 = [('Ubuntu 22.04.5 · L4T R36.4.4', False),
          ('（NVDEC/NVENC/NVJPG/VIC/OFA）· ptp4l', False)]
 # 驱动层：传感直连内容在前（以传感为重），底层驱动在后
 # 驱动层：传感直连在前（hal_camera 显式标注所连相机与视频流用途，→ 为板内流路径），底层驱动在后
-dr_c1 = [('hal_camera→ox05bis 左目：Agent 人脸/手势@NPU', False),
-         ('└ nv12_l→rtsp 供 App 看相机 · BMI08 IMU', False),
+dr_c1 = [('hal_camera→共用双目左目：Agent 人脸/手势@NPU', False),
+         ('（与 orin 同一组双目·双路 GMSL 送两板）', False),
          ('exposure 进程：经 I2C 给 5×ToF 下发曝光参数', False),
          ('（控制面；ToF 深度数据不经过运控板）', False),
          ('配件：rc · 圈圈 · insta360 · resource_manager', False),
@@ -131,14 +131,14 @@ dr_c3 = [('hal_camera→x5b 双目：percep 检测/分割@TRT', False),
 hw_c1 = [('业务核 = 4×A72 大核 + 2×A53 小核', True),
          ('Mali-G52 图形 GPU · NPU 6TOPS · 统一 DDR 8GB', False),
          ('eMMC 116.5G · WiFi/BT · YT9215RB+RJ45', False),
-         ('头部相机+IMU · 本体传感（GMSL/rkcif 直连）', False)]
+         ('共用双目左目+IMU · 本体传感（双路 GMSL）', False)]
 hw_c2 = [('隔离小核 ×2（CPU2/CPU3）', True),
          ('CPU2：CAN0/1 硬中断 + dm 实时线程', False),
          ('CPU3：MC 运控独占（36 线程）', False),
          ('CAN0/1 总线 → 14× 关节执行器 + MCU', False)]
 hw_c3 = [('Orin（6×A78AE · Ampere 1024CUDA+32TC）', False),
          ('LPDDR5 8GB · 102.4GB/s · NVMe 238.5G', False),
-         ('OFILM GMSL 模组：2×5MP RGB + 5 目 ToF', False)]
+         ('OFILM 七路模组：双目(与 rk 共用) + 5×ToF', False)]
 
 ROWS = [('具身框架层', (fw_c1, fw_c2, fw_c3)),
         ('OS 层', (os_c1, os_c2, os_c3)),
@@ -341,7 +341,7 @@ S.append(arrow(TC_X, AY2, C3_X + C3_W, AY2, dash='5,4', sw=1.3))
 t, _ = text_block(LBL_X, BOARD_BOT + 110, [
     ('图例：箭头①②③＝板内/跨板数据流（★为官方接口）；虚线＝工具链注入（运行时库/构建产物/调测工具）；层间自上而下＝上层依赖下层。', False),
     ('业务层模块框序：自上而下＝依赖方向（上＝对外接口/依赖方，下＝被依赖底座与数据源）。', False),
-    ('列内链：运控列自上而下＝mc→CAN 驱动→14 执行器（1kHz 实时环）；相机/ToF 原图均板内 iceoryx 消化不跨板：rk 头部相机→Agent 视觉/rtsp·App，orin GMSL 模组→感知融合；ToF 控制面在 rk（exposure）、数据面在 orin。', False)],
+    ('列内链：运控列自上而下＝mc→CAN 驱动→14 执行器（1kHz 实时环）；相机/ToF 原图均板内 iceoryx 消化不跨板：rk 共用双目左目→Agent 视觉/rtsp·App，orin 双目→感知融合；ToF 控制面在 rk（exposure）、数据面在 orin；双目由 OFILM 双路 GMSL 模组同时送两板。', False)],
     fs=11.2, color='#5b6b7a', lh=16.6)
 S.append(t)
 
