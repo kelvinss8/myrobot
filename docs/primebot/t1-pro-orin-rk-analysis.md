@@ -439,7 +439,7 @@ systemd
 
 **`/coreon_fusion_ros2_node`（coreon_fusion）— 感知融合枢纽（S27）**
 - 发布：`/aima/coreon_fusion/state`（融合/避障状态）★、`/perception/percep_fusion/point_cloud`、`/perception/target_info`、`mc/locomotion/velocity`、diagnostic、sm/node_state、trace
-- 订阅（27 路）：5 路 ToF sensor_info、5 路 pmd_royale 点云、metoak 相机 3 路、orin 相机图像（stereo×2；fisheye 通道为 Q1 遗留配置，T1 Pro 不装鱼眼、本机无该数据流）、torso IMU/odom×2、filtered_point_cloud、occlusion_status、fall_guard/edge_xs、interaction/state、mc/locomotion/velocity
+- 订阅（27 路）：5 路 ToF sensor_info、5 路 pmd_royale 点云、metoak 相机 3 路、orin 相机图像（stereo×2 + fisheye×2——鱼眼物理存在但默认休眠，激活后加入融合）、torso IMU/odom×2、filtered_point_cloud、occlusion_status、fall_guard/edge_xs、interaction/state、mc/locomotion/velocity
 - 服务端：`ObstacleCheck`、`SetAvoidance`、`GetSceneList`、`GetSceneState`、`SceneCommand`、`SmNodeService/coreon_fusion/…`
 - 客户端：`GetAndPlayNlgText`
 
@@ -619,7 +619,7 @@ systemd
 | `/aima/hal/camera/bgr_centra` | sensor_msgs/Image | 中央彩色相机图像（BGR） | 标准 Image | coreon_fusion 订阅 | 大带宽；iceoryx 板内优先，跨板走 DDS |
 | `/aima/hal/camera/head_stereo_left` | Image | 头部左目立体相机图像 | 标准 Image | 亮度检测订阅 | — |
 | `/aima/hal/camera/head_stereo_left_orin` / `_right_orin` | Image | 头部双目（orin 处理流）左右目 | 标准 Image | coreon_fusion 订阅 | — |
-| `/aima/hal/camera/head_fisheye_left_orin` / `_right_orin` | Image | 头部左右鱼眼（**T1 Pro 不装鱼眼，本话题无发布者——Q1 机型共享配置**） | 标准 Image | coreon_fusion 订阅（T1 Pro 空载） | — |
+| `/aima/hal/camera/head_fisheye_left_orin` / `_right_orin` | Image | 头部左右**鱼眼（物理存在，默认休眠——需 GPIO 上电+加载 sensing_cam-T1.ko+OPEN_FISHEYE=true 激活，/dev/video8/9 默认不出现）** | 标准 Image | coreon_fusion 订阅（激活后消费） | — |
 | `/ofilm/tof/{main,front,rear,left,right}/sensor_info` | RgbdInfo | 5 路 ToF 模组信息 | `header`；`exposure` 曝光；`temperature` 温度 | coreon_fusion/融合链路订阅 | 与 `SetHalTofStream` 供电/出流控制配对 |
 | `/ofilm/tof/inter_board` | std_msgs/Bool | ToF 板间同步标志 | `data` | hal_rgbd_node_0 与 rk exposure 订阅 | rk↔orin ToF 采集同步 |
 | `/ofilm/tof/*/raw_record`、`/ofilm/tof/*/rrf_record`（×10） | Bool | 各 ToF 原始/RRF 录制开关（**仅订阅 = 二开可发**） | `data` | hal_rgbd 订阅 | 数据采集入口（录制约 /robot/persist） |
@@ -1333,7 +1333,7 @@ sequenceDiagram
 
 | 进程（模块） | CPU% 基线 | CPU% UC1跳舞 | CPU% UC2a趴下 | CPU% UC2b站立 | CPU% UC3牵手 | 内存 RSS(MB) | GPU 归因 |
 |---|---|---|---|---|---|---|---|
-| hal_camera（相机 HAL：双目 2×x5b 与 rk 共用同一组物理相机） | 42.6 | 40.6 | 41.4 | 41.5 | 41.5 | **693** | 持有 GPU 设备（图像处理/上传，RSS 含 CUDA 缓冲） |
+| hal_camera（相机 HAL：双目 2×x5b 与 rk 共用 + 鱼眼×2 默认休眠） | 42.6 | 40.6 | 41.4 | 41.5 | 41.5 | **693** | 持有 GPU 设备（图像处理/上传，RSS 含 CUDA 缓冲） |
 | hal_rgbd（5 目 ToF HAL） | 38.3 | 38.8 | 38.9 | 38.9 | 38.7 | 356 | —（点云走 CPU/ISP） |
 | nav2_perception（点云合并+perception_node） | 16.9 | 18.6 | 18.5 | 19.0 | 19.5 | 97 | — |
 | **percep（感知算法：分割/深度/检测）** | 9.0 | 18.7 | 15.9 | 15.3 | **23.9** | 342 | **GR3D（TensorRT 推理，GPU 算力主项之一）** |
@@ -1514,7 +1514,7 @@ sequenceDiagram
 2. **五层横切核对 ✅ 基本合理**，与板上实际栈一致，但有三点按事实修正/注记：① **ROS 2/AimRT/iceoryx/推理运行时归「具身框架层」而非 OS 层**——OS 层只放内核+systemd+系统服务；② **运控执行列没有独立 RT 内核**（无 PREEMPT_RT，靠 isolcpus+SCHED_RR，已在该列 OS 层如实标注）；③ 按 4+1 严格口径，硬件/驱动/OS 层属物理/过程视图成分，**逻辑视图本体=具身业务层的功能模块及其接口**（图中已为每个业务模块标注职责与代表接口★），纯逻辑协作图见 §7.4。
 3. **工具链框收拢为六块**（版本以 §6.1 实测为准）：**开发工具**（colcon+CMake 工作空间、AimRT RPC 代码生成、Rust 工具链）→ **调测工具**（ros2 CLI、tegrastats、jetson-stats 7.2.1、iox-introspection、ASan、AimRT monitor/viz）→ **运维链**（hds、cloud_proxy、ota、data_exporter、drp、abox）→ **三方依赖包**（外包「多媒体与图像 / UI 与音频 / 系统与网络服务」三组）→ **APP 应用**（PrimeBot App：操控/跟随/拍照/看相机；接入=app_proxy·TRRO+鉴权+热点直连）→ **SDK 二次开发包**（PC SDK：★官方 30 接口·服务/话题/RTSP；FastDDS 直连双板，aimdk_msgs，§5）；中间件与通信、AI 推理运行时、商业 SDK 三组不再单列成框——推理运行时要点已见于框架层单元格，完整版本与开源仓以 §6.1 为准。
 4. **跨板边界只走结果级数据**：rk↔orin 经内部以太网 FastDDS 域 0 交换目标/点云/代价图与任务指令；相机原图等大带宽在 orin 板内经 iceoryx 消化（§4.0）。**2026-10-31 实测板间链路流量 ≈2 Mbps**（orin unused0 口 5s 采样：下行 155KB/s + 上行 80KB/s，时值两板视觉同时持续运行——rk Agent 105% CPU/NPU 29%+9%、orin hal_camera 43%/hal_rgbd 39%/percep 10%）：远低于任何一路视频（864×648@10fps NV12 ≈67Mbps、5MP 原始 ≈750Mbps），证明**视频零跨板**；percep 订阅 orin 本地 `head_stereo_left/right` + 5×ToF 点云（cfg 实证），Agent 订阅 rk 本地 `bgr_camera_l`（agent.yaml 实证）。
-5. **传感器直连拓扑（2026-10-31 板上实证：fuser/dmesg/配置三重核验）**：**运控板 rk 直连**——**共用双目左目**（OFILM 双路 GMSL 模组将同一组双目同时送两板：rk MAX96724_b 只启用左目 /dev/video1〔右目 video0 存在但 enable:false〕，OX05BIS 5MP 2592×1944@10fps；两板 stereo_left 内参完全一致＝同一物理相机，2026-11-03 实证）+ **BMI08 头部 IMU** + **5 目 ToF 控制面**（hal_rgbd 包内 `exposure` 进程经 I2C（i2c-0/i2c-5）+ V4L2 直控 5 颗 ToF 曝光/滤波，并处理 `/ofilm/tof/inter_board` 板间同步）+ 本体传感（BMS/触摸/灯/舵机，hal_sensor_soc0）；图像经 iceoryx/dmabuf 板内供给 Agent 视觉（NPU 实测 Core0 25%/Core1 15% 常跑）与 rtsp_server（MPP 编码→App）。**大脑板 orin 直连**——OFILM GMSL 模组：2× ofilm_x5b 5MP RGB（2592×1944 UYVY，hal_camera 持有 video0-1）+ **5 目 ToF 数据面**（ofilm_tof/tofb 驱动，hal_rgbd 持有 video2-7→coreon_fusion 融合）+ ADU/温度（hal_sensor_soc1）。**跨板只走结果级数据与同步信号**（soc_sync/ready、inter_board、点云/目标/指令），图像话题 ROS 侧 0 发布者＝原图不跨板；ToF 为「控制面在 rk、数据面在 orin」分工。头部 IMU 归属修正：由 rk hal_camera 发布（orin 配置中 imu_head 已注释）。外部佐证：[欧菲光「七路融合感知」方案（双目 RGB + 5 路 ToF + 6 轴 IMU）](https://www.chinanews.com.cn/cj/2026/10-30/10723321.shtml)。
+5. **传感器直连拓扑（2026-10-31 板上实证：fuser/dmesg/配置三重核验）**：**运控板 rk 直连**——**共用双目左目**（OFILM 双路 GMSL 模组将同一组双目同时送两板：rk MAX96724_b 只启用左目 /dev/video1〔右目 video0 存在但 enable:false〕，OX05BIS 5MP 2592×1944@10fps；两板 stereo_left 内参完全一致＝同一物理相机，2026-11-03 实证）+ **BMI08 头部 IMU** + **5 目 ToF 控制面**（hal_rgbd 包内 `exposure` 进程经 I2C（i2c-0/i2c-5）+ V4L2 直控 5 颗 ToF 曝光/滤波，并处理 `/ofilm/tof/inter_board` 板间同步）+ 本体传感（BMS/触摸/灯/舵机，hal_sensor_soc0）；图像经 iceoryx/dmabuf 板内供给 Agent 视觉（NPU 实测 Core0 25%/Core1 15% 常跑）与 rtsp_server（MPP 编码→App）。**大脑板 orin 直连**——OFILM GMSL 模组：2× ofilm_x5b 5MP RGB（2592×1944 UYVY，与 rk 共用双路 GMSL 同一组双目）+ **鱼眼×2**（SG3S23NGQB/SG1M6NGOB，经 MAX96716 GMSL 独立链路连 orin，**默认休眠**——sensing_cam-T1.ko 未加载、GPIO 未上电，需 load_fisheye_module.sh 激活，/dev/video8/9 默认不出现；感知/避障用）+ **5 目 ToF 数据面**（ofilm_tof/tofb 驱动→pmd_royale 点云→coreon_fusion）+ ADU/温度（hal_sensor_soc1）。**跨板只走结果级数据与同步信号**（soc_sync/ready、inter_board、点云/目标/指令），图像话题 ROS 侧 0 发布者＝原图不跨板；ToF 为「控制面在 rk、数据面在 orin」分工。头部 IMU 归属修正：由 rk hal_camera 发布（orin 配置中 imu_head 已注释）。外部佐证：[欧菲光「七路融合感知」方案（双目 RGB + 5 路 ToF + 6 轴 IMU）](https://www.chinanews.com.cn/cj/2026/10-30/10723321.shtml)。
 5. **一套以太网、一个 ROS 2 域**：PC/rk/orin 同处 `10.1.1.0/24`（§1）；rk 是对外网关，**对外接入（App/云/遥控器/圈圈/Insta360）全部终结于运控板**。
 6. **两列同板共享 OS/驱动/硬件**：运控执行列的 OS/驱动/硬件层标注「与左列共享」及该列特有部分（隔离调度、CAN 中断、执行器总线），避免误解为独立系统。
 7. **与后文四节的对应**：§7.2 软件模块连接图为本图业务层的「模块—硬件—外部」连接视角；§7.3 模块清单的功能分组（交互与业务/系统与运维/传感与外设接入/实时运控/感知与融合/导航与跟随）即本图各列「具身业务层」内的分组；§7.4 为业务层的模块级接口展开；§7.5 为对应与校验。
@@ -1669,7 +1669,7 @@ flowchart TB
 | rk·实时运控层 | CAN 中断收发 | （内核 irq83/84 @CPU2） | — | CAN0/CAN1 总线硬中断 | 14 关节执行器链路（不暴露 DDS） |
 | rk·板基座 | 进程管理/守护 | process_manager、sys_guard、iox-roudi、conduit_router(mosquitto)、tetherd、secret_store、hostapd/dnsmasq | `/process_manager0`、`/sys_guard_node_soc0` | em 体系拉起守护、场景看护、零拷贝总线、MQTT、内网/热点 | `EmAppService` proto、`active_scene` |
 | orin·传感器接入层 | ToF/RGBD HAL | aimrt_main(hal_rgbd) | `/hal_rgbd_node`(+`_0`) | 5 目 ToF（main/front/rear/left/right）供电出流 | ★相关 `SetHalTofStream`、`sensor_info` |
-| orin·传感器接入层 | 相机 HAL | aima-hal_camera-app-main | `/hal_camera`(+`_1`) | 双目 2×x5b（与 rk 共用同一组物理相机）、双板同步 | ★`CaptureJpegImage`、`SetHalCameraStream` |
+| orin·传感器接入层 | 相机 HAL | aima-hal_camera-app-main | `/hal_camera`(+`_1`) | 双目 2×x5b（与 rk 共用）+ 鱼眼×2（默认休眠，MAX96716 GMSL）、双板同步 | ★`CaptureJpegImage`、`SetHalCameraStream` |
 | orin·传感器接入层 | 传感器 HAL soc1 | aimrt_main(hal_sensor orin) | `/hal_sensor_soc1` | ADU 电源板、orin 温度、orin 侧关机 | `adu/state`、`thermal/soc1`、`SetPowerDownOrin` |
 | orin·感知与融合层 | 多源融合 | coreon_fusion | `/coreon_fusion_ros2_node` | 27 路输入（5×ToF+相机+IMU+UWB）融合避障（跟随算法节点） | `ObstacleCheck`、`SetAvoidance`、`target_info` |
 | orin·感知与融合层 | 人体跟踪+亮度 | aimrt_main×2（target_follow_perception、brightness_detection） | `/aimrt_person_track_*`、`/aimrt_brightness_*` | 跟随候选检测、过暗门控 | ★`follow_candidates`、`follow_brightness_dark` |

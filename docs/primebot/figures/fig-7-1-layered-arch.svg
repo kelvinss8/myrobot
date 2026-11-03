@@ -105,7 +105,7 @@
 <rect x="512" y="704" width="258" height="144" rx="6" fill="#faf6fb" stroke="#a8b4c0" stroke-width="1"/>
 <text x="522" y="723" font-family="Noto Sans CJK SC" font-size="12.2" fill="#1f2933">CAN0/1 驱动（硬中断 irq83/84@CPU2）</text>
 <rect x="822" y="704" width="296" height="144" rx="6" fill="#faf6fb" stroke="#a8b4c0" stroke-width="1"/>
-<text x="832" y="723" font-family="Noto Sans CJK SC" font-size="12.2" fill="#1f2933">hal_camera→x5b 双目：percep 检测/分割@TRT</text>
+<text x="832" y="723" font-family="Noto Sans CJK SC" font-size="12.2" fill="#1f2933">hal_camera→双目+鱼眼×2(休眠)：percep@TRT</text>
 <text x="832" y="740" font-family="Noto Sans CJK SC" font-size="12.2" fill="#1f2933">→ /percep/cloud·detect → Nav2/跟随</text>
 <text x="832" y="757" font-family="Noto Sans CJK SC" font-size="12.2" fill="#1f2933">hal_rgbd：5 目 ToF 数据面（ofilm 直连）</text>
 <text x="832" y="774" font-family="Noto Sans CJK SC" font-size="12.2" fill="#1f2933">→ 点云→coreon_fusion 融合/避障</text>
@@ -128,7 +128,7 @@
 <rect x="822" y="874" width="296" height="112" rx="6" fill="#fef6f1" stroke="#a8b4c0" stroke-width="1"/>
 <text x="832" y="918" font-family="Noto Sans CJK SC" font-size="12.2" fill="#1f2933">Orin（6×A78AE · Ampere 1024CUDA+32TC）</text>
 <text x="832" y="935" font-family="Noto Sans CJK SC" font-size="12.2" fill="#1f2933">LPDDR5 8GB · 102.4GB/s · NVMe 238.5G</text>
-<text x="832" y="952" font-family="Noto Sans CJK SC" font-size="12.2" fill="#1f2933">OFILM 七路模组：双目(与 rk 共用) + 5×ToF</text>
+<text x="832" y="952" font-family="Noto Sans CJK SC" font-size="12.2" fill="#1f2933">OFILM 模组：双目(共用)+鱼眼(休眠)+5×ToF</text>
 <rect x="1146" y="76" width="394" height="910" rx="10" fill="#fffdf4" stroke="#c9a24b" stroke-width="1.2"/>
 <text x="1225" y="98" font-family="Noto Sans CJK SC" font-size="13" fill="#7a5c14" font-weight="700">◆ 工具链（纵贯两板 · 版本见 §6.1）</text>
 <rect x="1154" y="112" width="378" height="77.80000000000001" rx="5" fill="#ffffff" stroke="#d8c48a" stroke-width="1"/>

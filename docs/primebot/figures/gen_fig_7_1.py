@@ -122,7 +122,7 @@ dr_c1 = [('hal_camera→共用双目左目：Agent 人脸/手势@NPU', False),
          ('hal_sensor：★bms/touch · SetServo · 灯语', False),
          ('驱动：Mali/RKNPU · rkcif+max96724 · MPP/RGA', False)]
 dr_c2 = [('CAN0/1 驱动（硬中断 irq83/84@CPU2）', False)]
-dr_c3 = [('hal_camera→x5b 双目：percep 检测/分割@TRT', False),
+dr_c3 = [('hal_camera→双目+鱼眼×2(休眠)：percep@TRT', False),
          ('→ /percep/cloud·detect → Nav2/跟随', False),
          ('hal_rgbd：5 目 ToF 数据面（ofilm 直连）', False),
          ('→ 点云→coreon_fusion 融合/避障', False),
@@ -138,7 +138,7 @@ hw_c2 = [('隔离小核 ×2（CPU2/CPU3）', True),
          ('CAN0/1 总线 → 14× 关节执行器 + MCU', False)]
 hw_c3 = [('Orin（6×A78AE · Ampere 1024CUDA+32TC）', False),
          ('LPDDR5 8GB · 102.4GB/s · NVMe 238.5G', False),
-         ('OFILM 七路模组：双目(与 rk 共用) + 5×ToF', False)]
+         ('OFILM 模组：双目(共用)+鱼眼(休眠)+5×ToF', False)]
 
 ROWS = [('具身框架层', (fw_c1, fw_c2, fw_c3)),
         ('OS 层', (os_c1, os_c2, os_c3)),
