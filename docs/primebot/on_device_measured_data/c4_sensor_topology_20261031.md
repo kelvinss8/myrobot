@@ -59,7 +59,7 @@
 | 节点/进程 | 实证结论 | 证据 |
 |---|---|---|
 | /HK_ros2_rpc_node | 管家/云属性桥（推断→实证） | 服务端 DevicePropertyService/SetProperty + 客户端 CloudPropertyService/ReportProperty |
-| /task_trigger_ros2_node | **Agent 交互触发链**（原推断 task_engine 侧有误） | 订阅 /agent/task_operation、/aima/agent/face_info、/aima/interaction/state；TaskStatus 服务客户端；两板均无同名独立进程＝进程内节点 |
+| /task_trigger_ros2_node | **scene_engine 进程的 ROS 节点**（2026-11-04 备份实证；原推断 task_engine 侧有误） | 订阅 /agent/task_operation、/aima/agent/face_info、/aima/interaction/state；TaskStatus 服务客户端；宿主三重证据：scene_engine_config.yaml node_name＋libtask_trigger_module.so＋二进制符号 scene_engine::TaskTriggerModule |
 | /trro_recv_dedicated | App 通道接收器，app_proxy 域 | 订阅 /aima/app_proxy/trro_pull_message；无独立进程 |
 | scene_engine | ros2 通道订阅（非 iceoryx 推断） | cfg：sub interaction/state、agent/face_info（ros2 后端） |
 | rk hal_camera(rk) | 头部相机+IMU 直连采集（非"供电/管理"） | 本文件 §1-§2 |

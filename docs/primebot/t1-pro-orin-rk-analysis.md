@@ -255,7 +255,7 @@ systemd
 | `aimrt_main`（insta360.yaml） | run | Insta360 云台相机接入 | `/insta360_ros2_node` + `/insta360_gimbal_tts` |
 | `aimrt_main`（quanji.yaml，connx） | run | 「圈圈」UWB 随行设备接入（UWB/IMU/雷达/音频） | `/quanji_uwb_ros2_node` |
 | `picture_service`（resource_manager 目录） | run | 拍照与资源管理（图片/自定义动作资源） | `/picture_service`（SM 注册名 `resource_manager`） |
-| `scene_engine` | run | 场景引擎（场景 tick/切换） | 图上未见独立 ROS 节点 |
+| `scene_engine` | run | 场景引擎（场景 tick/切换 + Agent 交互任务触发） | `/task_trigger_ros2_node`＝本进程 ROS 节点（TaskTriggerModule；2026-11-04 备份实证：cfg `node_name` + `libtask_trigger_module.so` + 二进制符号三重确认，此前「无 ROS 节点」有误） |
 | `python3 housekeeper` | run | 管家服务：WiFi/蓝牙/4G/设备信息/权限管理 | `/housekeeper0`（另 `/HK_ros2_rpc_node` 推断亦属管家/云属性桥） |
 | `python3 local_app_proxy.app_proxy` | run | 手机 App 代理（App 连接/鉴权/指令转发） | `/app_proxy` + `/app_proxy_client` |
 | `ros2 run rtsp_server` ×2 | run | RTSP 视频流服务（App 看相机画面） | `/rtsp_video_server` |
@@ -319,7 +319,7 @@ systemd
 | aima-agent-app | `/aimrt_agent_node` | 15 | 8 | 18 | 24 |
 | （管家/云属性桥，实证） | `/HK_ros2_rpc_node` | 0 | 0 | 1 | 1 |
 | task_engine | `/task_engine` | 12 | 39 | 30 | 51 |
-| （任务触发链路，实证=Agent 交互触发） | `/task_trigger_ros2_node` | 0 | 3 | 0 | 1 |
+| scene_engine（TaskTriggerModule） | `/task_trigger_ros2_node` | 0 | 3 | 0 | 1 |
 | aimrt_main（t1_v2d0，device_manager） | `/device_manager_node` | 1 | 0 | 0 | 1 |
 | aimrt_main（audio_manager） | `/audiomanager_ros2_node` | 9 | 1 | 15 | 1 |
 | aimrt_main（hal_sensor soc0） | `/hal_sensor_soc0` | 6 | 2 | 9 | 0 |
@@ -337,7 +337,7 @@ systemd
 | lumina_server | `/lumina_server` | 1 | 9 | 0 | 13 |
 | legged_odom | `/legged_odom_node` | 8 | 1 | 2 | 0 |
 | data_exporter（soc0 实例） | `/data_exporter` ① | 1 | 0 | 12 | 10 |
-| 无 ROS 节点：aimrt_main(exposure)、hal_camera(rk)、scene_engine、flutter-pi、abox、mosquitto 等 | — | | | | |
+| 无 ROS 节点：aimrt_main(exposure)、hal_camera(rk)、flutter-pi、abox、mosquitto 等 | — | | | | |
 
 **① `/data_exporter` 在图中出现两次（重名双实例），soc0/soc1 各一个。**
 
@@ -1448,7 +1448,7 @@ sequenceDiagram
 | cloud_proxy | `/cloud_proxy` | 3/7/0/1 | | | |
 | rtsp_server | `/rtsp_video_server` | 0/0/0/1 | | | |
 | sys_guard | `/sys_guard_node_soc0` | 3/1/2/0 | | | |
-| display_ui / scene_engine / hal_camera(rk) / hal_rgbd(rk) / abox / conduit_router / secret_store | 非 ROS（iceoryx/私有协议/mosquitto） | — | | | |
+| display_ui / hal_camera(rk) / hal_rgbd(rk) / abox / conduit_router / secret_store | 非 ROS（iceoryx/私有协议/mosquitto） | — | | | |
 
 #### 6.4.3 进程优先级与资源切片总表（实测 `ps -eLo` + cgroup）
 
@@ -1469,7 +1469,7 @@ sequenceDiagram
 |---|---|---|
 | mc | **1.3G** | 运控二进制 + 6 套机型 cfg（`qd1_t2d0` 激活 264M、`q1_t2d0` 298M、`qd1_t1d5` 205M、`q1_t0d0` 159M、其余 95M——主体为 **643 个 RL 策略 onnx** 与 mimic CSV） |
 | aimrt_agent | 985M | Agent 二进制 + lib（MNN/ORT/RKNN/sherpa/讯飞/ffmpeg6.0/opencv4.8.1 自带）+ cfg 496M（omnis 模型、t1 人脸/手势 6 模型 ~190M）+ third_party（讯飞 ESR 93M + VTN SDK 86M） |
-| scene_engine | 273M | 场景引擎（lib 223M；iceoryx 通道、无 ROS 节点） |
+| scene_engine | 273M | 场景引擎（lib 223M；ROS 节点＝/task_trigger_ros2_node，通道后端 ros2+local） |
 | task_engine | 230M | 二进制 19.9M + 规则/技能资产 + 74 个提示音 wav |
 | cloud_proxy | 162M | 云端代理 |
 | aimrt_pulsecore | 160M | 音频核（部署未运行） |
@@ -1552,7 +1552,7 @@ flowchart TB
             DISP["胸屏 display_ui<br/>（flutter-pi，非 ROS）"]
             AUDIO["音频管理 audio_manager<br/>/audiomanager_ros2_node（PulseAudio TCP 6001/4713）"]
             LUM["灯效 lumina<br/>（订阅 9 路状态联动灯语，slice=system）"]
-            SCE["场景引擎 scene_engine<br/>（iceoryx，无 ROS 节点，slice=system）"]
+            SCE["场景引擎 scene_engine<br/>（/task_trigger_ros2_node，slice=system）"]
         end
         subgraph RK_SYS["系统与运维层（robot_system / auxiliary.slice）"]
             SM["状态机 aim_sm_app · /sm<br/>（系统状态监控：含 hds 健康诊断 · sys_guard 场景看护）"]
@@ -1655,7 +1655,7 @@ flowchart TB
 | rk·交互与业务层 | 胸屏 UI | flutter-pi(display_ui) | —（非 ROS） | 胸屏表情渲染 | 经 `display_state`/`PlayEmotion` 链联动 |
 | rk·交互与业务层 | 音频管理 | aimrt_main(audio_manager) | `/audiomanager_ros2_node` | 采音/播放/在线音乐（官方名 `/hal_audio`） | ★`PlayAudioFile`、★`Get/SetVolume`、TCP 6001/4713 |
 | rk·交互与业务层 | 灯效服务 | lumina_server | `/lumina_server` | 订阅 9 路状态做灯语联动（slice=system） | `PlayLight`、客户端 13 路（PlayEmotion 等） |
-| rk·交互与业务层 | 场景引擎 | scene_engine | —（iceoryx，无 ROS 节点） | 场景 tick/切换（slice=system） | 板内 iceoryx 通道 |
+| rk·交互与业务层 | 场景引擎 | scene_engine | `/task_trigger_ros2_node` | 场景 tick/切换 + Agent 交互任务触发（slice=system） | 订阅 `interaction/state`、`agent/face_info`、`task_operation` |
 | rk·系统与运维层 | 状态机 SM | aim_sm_app | `/sm` | 整机状态机、按 `SmNodeService` 驱动各应用（系统状态监控） | `GetSystemState`、`sm/system_state` |
 | rk·系统与运维层 | 管家 + App 代理 | housekeeper、local_app_proxy | `/housekeeper0`、`/app_proxy`(+`_client`) | WiFi/蓝牙/4G/权限；App 接入鉴权与状态镜像 | `CtrlWifi`、`ConnectRobot`/`JsonWebCheck` |
 | rk·系统与运维层 | 运维链 | hds、cloud_proxy、ota_master、data_exporter、drp、abox | `/hds`、`/cloud_proxy`、`/ota_master`、`/data_exporter`、`/record_*` | 系统状态监控（hds）、云端代理、OTA、数据导出（auxiliary）、录包、日志 | `GetAlertCodeJsonFile`、`alert_code_list` |
@@ -1701,7 +1701,7 @@ flowchart LR
             DISP["胸屏 display_ui<br/>(flutter-pi，非 ROS)"]
             AUDIO["音频管理<br/>/audiomanager_ros2_node"]
             LUM["灯效 lumina<br/>(slice=system)"]
-            SCE["场景引擎 scene_engine<br/>(iceoryx，slice=system)"]
+            SCE["场景引擎 scene_engine<br/>(/task_trigger_ros2_node，slice=system)"]
         end
         subgraph RK_SYS["系统与运维层（system/auxiliary.slice）"]
             SM["SM 状态机 /sm"]
@@ -1854,7 +1854,7 @@ flowchart LR
 1. **只读原则**：全程未对两板写入/重启/kill/服务调用（无 `ros2 service call`、无 `topic pub`、无参数修改）。`ros2 node/topic/service list` 属图发现查询；orin 侧复用了板上已存在的 ros2-daemon（pid 3066，非本次创建）。
 2. **已知副作用（向用户报备）**：rk 上一次 `ros2 node list` 曾把输出重定向到 `/tmp/.nl.txt`（空文件，重启即清）；rk 侧 `--no-daemon` 查询不落盘。除此之外无任何写入。
 3. **采集命令**（可复现）：`ssh t1pro_orin 'source /opt/docker/env.sh && ros2 node list'`、`ros2 topic list -v`、`ros2 service list -t`、`ros2 node info <node>`；定义文件位于板上 `/robot/software/interface/aimdk_msgs/share/aimdk_msgs/{msg,srv}[/<子系统>]` 与 `/robot/software/algorithm/aimdk_msgs/share/aimdk_msgs/`。
-4. **归属核实结果（2026-10-31 板上实证，原推断清单全部闭环）**：`/HK_ros2_rpc_node`＝管家/云属性桥（SetProperty 服务端 + CloudPropertyService/ReportProperty 客户端）；`/task_trigger_ros2_node`＝**Agent 交互触发链**（订阅 `/agent/task_operation`、`/aima/agent/face_info`、`/aima/interaction/state`，`TaskStatus` 服务客户端，无独立进程＝进程内节点——原推断 task_engine 侧有误）；`/trro_recv_dedicated`＝App 通道接收器（订阅 `trro_pull_message`，无独立进程，随 app_proxy 域）；rk `hal_camera(rk)`＝**共用双目左目**（与 orin 同一组 OFILM 双目，双路 GMSL 模组送两板，rk 只启用左目）+BMI08 IMU 采集（§3.2，图像走 iceoryx 故不在 ROS 图）；`exposure`＝5×ToF 曝光/板间同步控制面（I2C/V4L2 直控）；`scene_engine`＝ros2 通道订阅 `interaction/state`、`agent/face_info`（cfg 实证）。
+4. **归属核实结果（2026-10-31 板上实证，原推断清单全部闭环）**：`/HK_ros2_rpc_node`＝管家/云属性桥（SetProperty 服务端 + CloudPropertyService/ReportProperty 客户端）；`/task_trigger_ros2_node`＝**scene_engine 进程的 ROS 节点**（订阅 `/agent/task_operation`、`/aima/agent/face_info`、`/aima/interaction/state`，`TaskStatus` 服务客户端；2026-11-04 备份实证宿主＝scene_engine：cfg `node_name` + `libtask_trigger_module.so` + 二进制符号 `scene_engine::TaskTriggerModule` 三重确认——原推断 task_engine 侧有误）；`/trro_recv_dedicated`＝App 通道接收器（订阅 `trro_pull_message`，无独立进程，随 app_proxy 域）；rk `hal_camera(rk)`＝**共用双目左目**（与 orin 同一组 OFILM 双目，双路 GMSL 模组送两板，rk 只启用左目）+BMI08 IMU 采集（§3.2，图像走 iceoryx 故不在 ROS 图）；`exposure`＝5×ToF 曝光/板间同步控制面（I2C/V4L2 直控）；`scene_engine`＝上条宿主（ROS 节点即 `/task_trigger_ros2_node`，cfg 通道后端 ros2+local，无 iceoryx；cfg 中 `CoreonFusionModule/hds`、`/event` 两个 executor 系模板残留——二进制无 CoreonFusion 符号）。
 5. **版本基线**：采集于整机固件 `t2-3`（rk 设备树型号）/ orin JetPack（driver 540.4.0）；接口清单与该版本强相关。
 
 <a id="sec9"></a>
