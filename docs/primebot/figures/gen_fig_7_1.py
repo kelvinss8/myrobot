@@ -87,8 +87,8 @@ BIZ_COLS = [
   ('交互呈现', ['audio_manager（★播放/音量）· display_ui 胸屏', 'lumina 灯效 · scene_engine 场景']),
  ],
  [  # rk·运控：mc 对上暴露 ★接口；CPU2/CPU3 隔离核业务显式标注
-  ('mc 运动控制', ['★SetMcAction·velocity（指令下发）', '★mc/common/state（全量状态）', 'CPU3 独占：RL·WBC·动作 FSM', 'CPU2：CAN 硬中断 + dm 设备 IO']),
-  ('device_manager 设备实时 IO', ['SCHED_RR 钉 CPU2', 'realtime.slice（§2.4）']),
+  ('mc 运动控制', ['★SetMcAction·velocity（指令下发）', '★mc/common/state（全量状态）', 'CPU3 独占：RL·WBC·动作 FSM']),
+  ('device_manager 本体执行器 HAL', ['14 关节 CAN（前身 hal_ethercat）', 'joint/state@1kHz·躯干IMU iceoryx', '6×SCHED_RR 钉 CPU2（中断同核）']),
  ],
  [  # orin：任务产出层在上，感知融合居中（传感直连内容已并入驱动层格）
   ('导航与跟随', ['Nav2 1.1.20（★navi 指令/地图加载）', 'follow_node（★follow/state）', 'trajectory_tracker（环绕运镜）']),

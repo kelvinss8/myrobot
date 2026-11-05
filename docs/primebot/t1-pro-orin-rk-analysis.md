@@ -184,7 +184,7 @@ rk 内核启动参数做了 CPU 隔离（`/sys/devices/system/cpu/isolated` = **
 | `irq83 can0`、`irq84 can1` | 硬中断（未线程化） | —（中断上下文） | **CAN0/CAN1 总线收发**：14 关节执行器/主控 MCU 挂此两路总线（累计 ~600/~450 万次，`/proc/irq/*/smp_affinity_list` 实测钉 2） |
 | `irq14 rk_timer`、`irq38/39 arm-pmu` | 硬中断 | — | 内核定时器、PMU 性能计数采样 |
 | device_manager `rt_topic_sub`、`rt_iceoryx_sub` | **SCHED_RR** | **rtprio 85** | 设备数据实时订阅（DDS 话题 + iceoryx 零拷贝通道） |
-| device_manager `rt_dev_ioctl.0/.1`、`rt_dev_poll`、`rt_topic_pub` | **SCHED_RR** | **rtprio 80** | **本体设备实时 ioctl/轮询**（CAN/电源等设备读写）与实时发布——device_manager 常驻 ~50% CPU 的主因；注意其**进程本体亲和性为 `0,1,4-7`，仅这 6 个 rt 线程被单独钉在 CPU2**（线程级 affinity） |
+| device_manager `rt_dev_ioctl.0/.1`、`rt_dev_poll`、`rt_topic_pub` | **SCHED_RR** | **rtprio 80** | **本体设备实时 ioctl/轮询**（**14 关节 CAN FD 总线读写**——device_manager 实为本体执行器 HAL，前身 hal_ethercat，附录 A.5）与实时发布——device_manager 常驻 ~50% CPU 的主因；注意其**进程本体亲和性为 `0,1,4-7`，仅这 6 个 rt 线程被单独钉在 CPU2**（线程级 affinity） |
 | `cpuhp/2`、`migration/2`、`ksoftirqd/2`、`kworker/2:*` | 内核线程（migration 为 SCHED_FIFO 99） | FF 99/其他 | 每核必备内核管家线程（isolcpus 不排除它们） |
 
 **CPU3 —— mc 运动控制独占核（进程亲和性=3，36 线程全覆盖）**
@@ -241,7 +241,7 @@ systemd
 | `aima-agent-app`（agent.yaml） | run | Agent 对话智能体（LLM/语音交互/任务编排入口），RSS ~1.1GB | `/aimrt_agent_node`；子进程 ping `aiem-gw.primebot.cn` 探测云端 |
 | `task_engine` | run | 任务引擎：长任务编排/仲裁执行（跟随、建图、运镜…） | `/task_engine` |
 | `aimrt_main`（exposure_config.yaml） | run | 相机曝光控制 | 图上未见独立 ROS 节点（iceoryx 通道为主） |
-| `aimrt_main`（t1_v2d0_config.yaml） | run | 设备管理器 device_manager | `/device_manager_node`（cwd=/robot/software/device_manager/bin 实证） |
+| `aimrt_main`（t1_v2d0_config.yaml） | run | 设备管理器 device_manager（**本体执行器 HAL**，前身 hal_ethercat：拉起 can0/can1 + 14 关节电机 CAN FD IO，§2.4/附录 A.5） | `/device_manager_node`（cwd=/robot/software/device_manager/bin 实证） |
 | `aimrt_main`（audio_manager.yaml） | run | 音频管理（麦克风阵列/播放/音乐） | `/audiomanager_ros2_node` |
 | `aimrt_main`（hal_sensor_t1_v2d0_cfg.yaml） | run | 传感器 HAL（BMS/触摸/灯/舵机/颈部灯，soc0 侧） | `/hal_sensor_soc0` |
 | `aima-hal_camera-app-main`（rk 配置） | run | **相机 HAL：共用双目左目采集**（与 orin 同一组 OFILM 双目的 LEFT 眼——双路 GMSL 模组同时送两板，rk 只启用左目 video1、右目 video0 存在但 enable:false；OX05BIS 5MP，2592×1944@10fps）+ **BMI08 头部 IMU**（/dev/bmi08_imu）；帧经 iceoryx/dmabuf 板内分发（Agent 视觉/rtsp） | 图上未见 ROS 节点（图像走 iceoryx，2026-10-31 板上实证） |
@@ -431,7 +431,7 @@ systemd
 
 **`/data_exporter`（soc0 实例，root）**：服务端 `soc0/async/Create|CancelAsyncTask`、`soc0/sync/CreateSyncTask|GetTaskStatus`、`soc0/cloud/platform/*`（GetJWT、GetUploadPath、CombineFileSlices、UnbindProject）、`soc0/cloud/result/Upload*`；客户端跨板调用 soc1 同名服务
 
-**`/device_manager_node`（rk）**：发布 diagnostic；客户端 `GetJointPowerState`
+**`/device_manager_node`（rk，本体执行器 HAL·前身 hal_ethercat）**：发布 `/aima/hds/diagnostic_list`（500ms，**唯一 DDS 出口**）；`/aima/hal/joint/state`（1kHz）、`/aima/hal/imu/torso/state`（500Hz）发布与 `/aima/hal/joint/command` 订阅均走 **iceoryx 板内**（cfg `enable_backends=iceoryx`，故 DDS 图上不可见；mc 是 joint/command 的发布方/joint/state 的订阅方，二者构成 mc↔dm 的 1kHz 闭环）；客户端 `GetJointPowerState`（关节上下电）。与 mc 分工＝**mc 算（控制策略@CPU3）/ dm 搬（总线 IO@CPU2）**（2026-11-05 备份实证，附录 A.5）
 
 **`/sys_guard_node_soc0`（rk）**：发布 `sys_guard/active_scene`、diagnostic、sm/node_state；订阅 sm/system_state；服务端 `SmNodeService/sys_guard/…`
 
@@ -463,7 +463,7 @@ systemd
 
 **`/trajectory_tracker`（path_follow_node）**：发布 `aima/motion/intelligent_task_state`（环绕运镜状态）★、`global_trajectory_path`、`trajectory_tracker/status`、`enable_follow`、`mc/locomotion/velocity`；订阅 `perception/target_info`、`pointcloud_filter`；服务端 `SpawnIntelligentMotionTask`★
 
-**`/pointcloud_combiner_node` + `/perception_node` + `/lifecycle_manager_t1_perception`（nav2_perception）**：合并前/后 ToF 点云 → `percep/tof/combined/point_cloud`；`perception_node` 发布 `pointcloud_filter`、订阅 `hal/joint/state`（关节状态，二开低层反馈）与合并点云，受 lifecycle 管理
+**`/pointcloud_combiner_node` + `/perception_node` + `/lifecycle_manager_t1_perception`（nav2_perception）**：合并前/后 ToF 点云 → `percep/tof/combined/point_cloud`；`perception_node` 发布 `pointcloud_filter`、订阅 `hal/joint/state`（关节状态，二开低层反馈；注意发布方 device_manager 走 iceoryx 不出 DDS 图且 iceoryx 不跨板，**此订阅实际收不到数据**，附录 A.5）与合并点云，受 lifecycle 管理
 
 **`/hal_sensor_soc1`（orin）**：发布 `hal/adu/state`（ADU 电源板状态）、`hal/thermal/soc1`（orin CPU 温度）、diagnostic；服务端 `SetPowerDownOrin`（orin 侧关机）
 
@@ -510,7 +510,7 @@ systemd
 | `/aima/mc/common/state` ★ | McCommonState | **运控全量状态**（输入源/Action/形态/FSM/姿态/提起/牵手） | `header`；`input_source`（name/priority/timeout）；`action_info`（current_action/source/status/switch_ready）；`runtime_model`（腰/左右手状态）；`motion_status`（player_state/control_area/motion/进度）；`fsm_state`；`form_state`（四足/双足）；`posture`（roll/pitch/yaw）；`is_moving`；`is_fallen`；`lift_state`（提起检测概率/阈值）；`task_info`（task_id）；`held_state`（牵手状态） | 同负载；全图 10 个订阅者（task_engine/follow/rc/感知/ota…） | 权威状态源：判断可下发动作前先看 `action_info.switch_ready`；`McActionStatus` 的 100=RUNNING（≠CommonState 语义） |
 | `/aima/mc/body_pose` | McBodyPose | 躯干姿态控制（站立高度/弯腰/侧弯/转头） | `header`；`source`；`stand_height` 站高；`bend_forward` 前弯；`bend_sideways` 侧弯；`twist_waist` 转腰；`raise_head` 抬头；`turn_head` 转头 | 同负载；rc 与 app_proxy 发布、drp 记录 | 姿态叠加量，量纲见官方运控文档；二开走 rc 同款通道需输入源授权 |
 | `/aima/mc/custom/joint/command` ★ | McCustomJointCommand | **自定义上肢关节控制指令**（二开低层入口，当前仅订阅） | `header`；`joints[]`：JointCommand（关节名/位置/速度/力矩等，详见 SDK 低层接口章） | mc 网关消费 | ★官方；仅 `BIPED_CUSTOM_UPPER`(1014) 等动作模式下生效；频率与安全限位见 SDK §2.1.2 |
-| `/aima/hal/joint/state` ★ | JointStateArray | **关节状态反馈数组**（当前仅订阅、发布者离线） | `header`；`joints[]`：JointState（`name`；`position`；`velocity`；`effort`；`coil_temp` 线圈温度；`motor_temp`；`motor_vol`） | perception_node、nav2 链路订阅 | ★官方；当前由运控侧按需发布（图上暂无发布者，订阅端就绪）；高频大数组，注意 QoS |
+| `/aima/hal/joint/state` ★ | JointStateArray | **关节状态反馈数组**（14 关节＝上肢 6＋下肢 8；device_manager 1kHz **iceoryx 持续发布，不出 DDS 图**——「图上无发布者」的真因，2026-11-05 备份实证） | `header`；`joints[]`：JointState（`name`；`position`；`velocity`；`effort`；`coil_temp` 线圈温度；`motor_temp`；`motor_vol`） | perception_node、nav2 链路订阅 | ★官方；iceoryx 板内通道（mc/legged_odom 消费）；跨板无 iceoryx——**orin 侧 ros2 订阅实际收不到数据**（干订阅）；高频大数组，注意 QoS |
 | `/cmd_vel` | geometry_msgs/Twist | Nav2 标准速度话题（仅订阅，当前 nav2 未使用该通路） | `linear.x/y/z`；`angular.x/y/z` | 双层 costmap 订阅 | T1 实际速度走 `mc/locomotion/velocity`；`/cmd_vel` 为 nav2 兼容保留 |
 | `/upper_body_joint_states` | sensor_msgs/JointState | 上肢关节状态（legged_odom 发布，rviz/调试用） | 标准 JointState（name/position/velocity/effort） | 调试/RViz | 调试用途 |
 | `/odom/status` | std_msgs/UInt8 | 里程计状态码 | `data` 状态码 | task_engine 订阅 | 内部 |
@@ -569,7 +569,7 @@ systemd
 | `/odom` ★相关 | nav_msgs/Odometry | **轮式/足式里程计**（legged_odom 发布） | `header`；`pose`（含 covariance）；`twist` | 全图 7 订阅（bt_navigator/controller/costmap/follow/感知） | 标准消息；坐标系 odom |
 | `/odom_torso` | nav_msgs/Odometry | 躯干（上半身）里程计 | 同上 | coreon_fusion 订阅 | 内部 |
 | `/torso_imu_orientation` | nav_msgs/Odometry | 躯干 IMU 航向（以里程计形式表达） | 同上 | coreon_fusion 订阅 | 内部 |
-| `/aima/hal/imu/torso/state` | sensor_msgs/Imu | 躯干 IMU 原始数据（仅订阅、发布者离线） | 标准 Imu（角速度/线加速度/姿态） | coreon_fusion 订阅 | 内部 HAL 通道 |
+| `/aima/hal/imu/torso/state` | sensor_msgs/Imu | 躯干 IMU 原始数据（device_manager 500Hz **iceoryx 持续发布，不出 DDS 图**） | 标准 Imu（角速度/线加速度/姿态） | coreon_fusion 订阅 | 内部 HAL 通道；跨板无 iceoryx——orin 侧实取躯干数据走 legged_odom 转发的 `/odom_torso`、`/torso_imu_orientation`（DDS） |
 | `/aima/hal/imu/imu_head` | sensor_msgs/Imu | 头部 IMU（**rk** hal_camera/BMI08 发布，跨板可见；orin 配置中已注释） | 标准 Imu | 外部（仅发布） | 内部 |
 | `/tf`、`/tf_static` | tf2_msgs/TFMessage | 坐标变换树（map→odom 静态、base_link→相机/ToF 静态、odom→base_link 动态） | TFMessage（transforms[]） | 全图 9 订阅 | 4 个静态发布器 + legged_odom 动态发布 |
 | `/goal_pose` | geometry_msgs/PoseStamped | 导航目标点（仅订阅；nav2 标准入口） | `header`；`pose` | bt_navigator 订阅 | T1 业务侧走 `/navi/command` 服务 |
@@ -675,7 +675,7 @@ systemd
 | `/perception/follow_debug_cloud/_image/_markers`（×3） | PointCloud2 / Image / MarkerArray | 跟随算法调试流 | 高带宽，默认勿订阅 |
 | `/follow/viz/cmd_vel`、`semantic_goal_resolution`、`semantic_planning_map`、`/follow/diag/semantic_costmap`、`/follow/transform_event` | TwistStamped / MarkerArray / OccupancyGrid / DiagnosticArray / String | 跟随可视化 5 路 | — |
 | `/rosout`、`/parameter_events` | Log / ParameterEvent | ROS 标准日志/参数事件 | — |
-| `/aima/hal/joint/command`（SDK 低层入口，**实机图上未出现**） | JointCommand[] | 关节控制命令（SDK §2.1.2 定义） | 当前无在线发布/订阅端；按 SDK 文档以 ~200Hz 方波规范发布 |
+| `/aima/hal/joint/command`（SDK 低层入口，**实机 DDS 图上未出现**） | JointCommand[] | 关节控制命令（SDK §2.1.2 定义；mc 的 1kHz 控制输出即经此通道、由 device_manager 转 CAN 上下肢执行器） | device_manager 以 iceoryx 订阅（板内不可见于 DDS 图）；外部发布者按 SDK 文档以 ~200Hz 方波规范发布 |
 
 > **话题覆盖核对**：以上 8 组共 198 项（含按前缀聚合行），与 `ros2 topic list` 实测一一对应。
 
@@ -1296,7 +1296,7 @@ sequenceDiagram
 |---|---|---|---|---|---|---|---|---|
 | **aimrt_agent**（Agent 对话智能体+语音前端+NPU 视觉） | interaction | 104.3 | **128.5** | 107.4 | 117.3 | 101.2 | **1229** | **NPU 独占**（6 个视觉模型，模型常驻即内存主项之一）+ CPU 推理（VAD/AEC/KWS） |
 | **mc**（MC 运动控制 · CPU3 独占 · RL 实时推理） | realtime | 43.4 | 74.3 | 76.5 | 74.5 | 77.1 | 252 | 纯 CPU（onnxruntime @CPU3，无 GPU/NPU） |
-| device_manager（设备管理） | realtime | 47.1 | 59.2 | 61.1 | 60.6 | 57.9 | 44 | — |
+| device_manager（本体执行器 HAL） | realtime | 47.1 | 59.2 | 61.1 | 60.6 | 57.9 | 44 | — |
 | legged_odom（足式里程计） | system | 37.5 | 42.2 | 39.1 | 41.9 | **43.0** | 64 | — |
 | drp（rosbag 持续录包） | system | 28.7 | 32.3 | 33.3 | 33.0 | 31.2 | 70 | — |
 | app_proxy（App 状态镜像 29 路订阅） | system | 28.7 | 30.5 | 30.2 | 30.1 | 30.3 | 123 | — |
@@ -1503,7 +1503,7 @@ sequenceDiagram
 
 **排版口径**：**纵向（列）**按部署域切分为三部分——运控板 rk 的「交互业务（非实时）」与「运控执行（实时）」两列 + 大脑板 orin 的「复杂感知与规划」一列；**横向（行）**自上而下为**具身业务层 → 具身框架层 → OS 层 → 驱动层 → 硬件层**五层（即自底向上：硬件→驱动→OS→框架→业务）；**最右侧为纵贯全部层级的「工具链」大框**。因 mermaid 自动布局无法锁定矩阵式行列顺序，本图由脚本生成 **SVG 矢量图**（`figures/gen_fig_7_1.py` → `figures/fig-7-1-layered-arch.svg`，仓库同时提供 PNG 版 `fig-7-1-layered-arch.png`），行列位置精确可控，并直接画出板内/跨板数据流与工具链注入连线。按 4+1 视图口径，**本图即逻辑视图**：以具身业务层的功能模块（职责+接口★）为主体，其下框架/OS/驱动层与硬件层作为物理承载一并框出（嵌套结构：**板框 ⊃ 部分框 ⊃ 业务/框架/OS/驱动四层；硬件层在板框内、部分框外**）；模块间接口协作另见 §7.4，场景串联见 §6.2。
 
-![图 7-1 逻辑视图（双板纵切 × 五层横切 × 工具链纵贯）](figures/fig-7-1-layered-arch.png?v=20261102e)
+![图 7-1 逻辑视图（双板纵切 × 五层横切 × 工具链纵贯）](figures/fig-7-1-layered-arch.png?v=20261105)
 
 > **图 7-1 读法**：**板框**（运控板 rk3576 / 大脑板 Orin Nano）⊃ **部分框**（交互业务（非实时）/ 运控（实时｜隔离核）/ 复杂感知与规划，各含具身业务→框架→OS→驱动四层，上层依赖下层）（正文为缩略显示，点击图片可放大至原生分辨率）；**硬件层**在板框内、部分框正下方（**rk 侧两格外包统一框：rk3576 8 核＝4×A72 大核＋4×A53 小核**，内格细分业务核〔4×A72＋2×A53〕与 2×隔离小核 CPU2/CPU3）；**OS 层 rk 两列同属一个 Ubuntu 22.04.5 实例**（外包统一框；两格内容侧重调度——业务格：interaction/system/auxiliary slice + CFS，运控格：isolcpus=2,3 + SCHED_RR 钉核）；**具身业务层内每模块独立成框，框序自上而下=依赖方向（上=对外接口/依赖方，下=被依赖底座与数据源）**；最右列为**工具链**纵贯（**开发工具 → 调测工具 → 运维链 → 三方依赖包**〔多媒体与图像 · UI 与音频 · 系统与网络服务〕**→ APP 应用 → SDK 二次开发包**；**传感直连内容已并入各板驱动层格**——rk 格以 hal_sensor/hal_camera(ox05bis)/exposure 为前，orin 格以 hal_rgbd/hal_camera(x5b) 为前）；**①②③通信线统一画在图底部**。
 > **连线与交互**（图上带编号的箭头）：**① 板内**（rk 业务⇄运控，iceoryx/DDS）——task_engine→★SetMcAction/velocity ↓，mc→★mc/common/state ↑；**② 跨板·任务与感知**（rk 业务⇄orin，内部以太网 10.1.1.0/24 · FastDDS 域 0）——FollowTaskCtrl/★navi 指令 ↓，★follow_candidates/点云/代价图、/odom·/tf ↑（只走结果级数据，相机原图板内消化）；**③ 跨板·速度直连**（orin→MC）——nav2/follow/运镜发布 velocity(pnc/follow)，MC 按 SetMcInputSource 仲裁；**外部接入**——App→app_proxy(TRRO/鉴权)、**云 LLM⇄Agent（HTTPS/TLS 443 · aiem-gw.agibot.com /v1/session：对话/意图，顶部「启元云端大模型」带即此链路，仅连运控板；2026-10-31 实测大脑板零云进程/零外部连接）**、云→cloud_proxy(MQTT/TLS：状态/OTA)、遥控器→rc(蓝牙)、圈圈→connx(BLE+UWB)、Insta360→insta360(WiFi)，全部终结于 rk；PC ★接口面 FastDDS 直连双板；**虚线**=工具链注入。模块级全量接口见 §7.4，连接视角见 §7.2。
@@ -1568,7 +1568,7 @@ flowchart TB
         end
         subgraph RK_RT["实时运控层（robot_realtime.slice · 隔离核）"]
             MC["运动控制 mc_app_main<br/>CPU3 独占 · /mc_ros2_node"]
-            DM["设备管理 device_manager<br/>/device_manager_node（与 mc 同 realtime.slice）"]
+            DM["本体执行器 HAL device_manager<br/>/device_manager_node（前身 hal_ethercat）<br/>14 关节 CAN FD IO · 6×RR@CPU2<br/>（与 mc 同 realtime.slice：mc 算/dm 搬）"]
             CANIRQ["CAN0/CAN1 硬中断<br/>CPU2 独占"]
         end
         PM0["板基座：process_manager0（em 守护）· sys_guard<br/>iox-roudi（iceoryx 零拷贝）· conduit_router(mosquitto MQTT/TLS)<br/>hostapd/dnsmasq(热点) · tetherd(内网) · secret_store"]
@@ -1665,7 +1665,7 @@ flowchart TB
 | rk·传感与外设接入层 | 足式里程计 | aima-legged_odom-app | `/legged_odom_node` | `/odom`、`/tf`、躯干位姿（跟随算法节点@rk） | `/odom`、`/tf` |
 | rk·传感与外设接入层 | 配件接入 | aima-rc-app、connx(quanji)、insta360、rtsp×2、resource_manager | `/rc`、`/quanji_uwb_*`、`/insta360_*`、`/rtsp_video_server`、`/picture_service` | 遥控/圈圈/云台/视频流/资源与拍照管理 | `ControlQuanji`、`ControlInsta360`、RTSP `live_<id>`、`PlayPhoto` |
 | rk·实时运控层 | **MC 运动控制** | **mc_app_main（CPU3 独占）** | `/mc_ros2_node` | 实时运控内核：动作/步态/关节伺服 | ★`SetMcAction`、★`velocity`、★`joint/command`、★`mc/common/state` |
-| rk·实时运控层 | 设备管理 | aimrt_main(t1_v2d0) | `/device_manager_node` | 设备轮询管理（与 mc 同属 realtime.slice） | 客户端 `GetJointPowerState` |
+| rk·实时运控层 | 本体执行器 HAL（设备管理器） | aimrt_main(t1_v2d0；前身 hal_ethercat，Q1/T1=CAN·T2=EtherCAT 多机型复用) | `/device_manager_node` | 14 关节（上肢 6@can0＋下肢 8@can1）CAN FD 总线 IO：em_run.sh 拉起 can0/can1（1M/5M）并绑 IRQ@CPU2；`joint/state`@1kHz＋躯干 IMU@500Hz iceoryx 发布、`joint/command` 订阅下发、500ms 诊断（唯一 DDS 口）；6×SCHED_RR 钉 CPU2（与 mc 同属 realtime.slice——**mc 算控制策略@CPU3，dm 搬总线 IO@CPU2**） | `/aima/hal/joint/state`·`/aima/hds/diagnostic_list`；客户端 `GetJointPowerState` |
 | rk·实时运控层 | CAN 中断收发 | （内核 irq83/84 @CPU2） | — | CAN0/CAN1 总线硬中断 | 14 关节执行器链路（不暴露 DDS） |
 | rk·板基座 | 进程管理/守护 | process_manager、sys_guard、iox-roudi、conduit_router(mosquitto)、tetherd、secret_store、hostapd/dnsmasq | `/process_manager0`、`/sys_guard_node_soc0` | em 体系拉起守护、场景看护、零拷贝总线、MQTT、内网/热点 | `EmAppService` proto、`active_scene` |
 | orin·传感器接入层 | ToF/RGBD HAL | aimrt_main(hal_rgbd) | `/hal_rgbd_node`(+`_0`) | 5 目 ToF（main/front/rear/left/right）供电出流 | ★相关 `SetHalTofStream`、`sensor_info` |
@@ -1717,7 +1717,7 @@ flowchart LR
         end
         subgraph RK_RT["实时运控层（realtime.slice）"]
             MC["MC 运动控制 /mc_ros2_node<br/>(CPU3)"]
-            DM["设备管理 device_manager<br/>(同 realtime.slice)"]
+            DM["本体执行器 HAL device_manager<br/>(14 关节 CAN IO·6×RR@CPU2)"]
             CANIRQ["CAN 中断 (CPU2)"]
         end
         PM0["process_manager0<br/>sys_guard · iox-roudi · conduit_router"]
@@ -1855,7 +1855,8 @@ flowchart LR
 2. **已知副作用（向用户报备）**：rk 上一次 `ros2 node list` 曾把输出重定向到 `/tmp/.nl.txt`（空文件，重启即清）；rk 侧 `--no-daemon` 查询不落盘。除此之外无任何写入。
 3. **采集命令**（可复现）：`ssh t1pro_orin 'source /opt/docker/env.sh && ros2 node list'`、`ros2 topic list -v`、`ros2 service list -t`、`ros2 node info <node>`；定义文件位于板上 `/robot/software/interface/aimdk_msgs/share/aimdk_msgs/{msg,srv}[/<子系统>]` 与 `/robot/software/algorithm/aimdk_msgs/share/aimdk_msgs/`。
 4. **归属核实结果（2026-10-31 板上实证，原推断清单全部闭环）**：`/HK_ros2_rpc_node`＝管家/云属性桥（SetProperty 服务端 + CloudPropertyService/ReportProperty 客户端）；`/task_trigger_ros2_node`＝**scene_engine 进程的 ROS 节点**（订阅 `/agent/task_operation`、`/aima/agent/face_info`、`/aima/interaction/state`，`TaskStatus` 服务客户端；2026-11-04 备份实证宿主＝scene_engine：cfg `node_name` + `libtask_trigger_module.so` + 二进制符号 `scene_engine::TaskTriggerModule` 三重确认——原推断 task_engine 侧有误）；`/trro_recv_dedicated`＝App 通道接收器（订阅 `trro_pull_message`，无独立进程，随 app_proxy 域）；rk `hal_camera(rk)`＝**共用双目左目**（与 orin 同一组 OFILM 双目，双路 GMSL 模组送两板，rk 只启用左目）+BMI08 IMU 采集（§3.2，图像走 iceoryx 故不在 ROS 图）；`exposure`＝5×ToF 曝光/板间同步控制面（I2C/V4L2 直控）；`scene_engine`＝上条宿主（ROS 节点即 `/task_trigger_ros2_node`，cfg 通道后端 ros2+local，无 iceoryx；cfg 中 `CoreonFusionModule/hds`、`/event` 两个 executor 系模板残留——二进制无 CoreonFusion 符号）。
-5. **版本基线**：采集于整机固件 `t2-3`（rk 设备树型号）/ orin JetPack（driver 540.4.0）；接口清单与该版本强相关。
+5. **device_manager 身份与「图上无发布者」悬案闭环（2026-11-05 备份实证，`rk_full/robot/software/device_manager/`）**：① **device_manager＝本体执行器 HAL，非通用设备管理**——CHANGELOG 自 `v0.1.0 Initial release of hal_ethercat` 起步（前身 hal_ethercat，Q1/T1=CAN、T2=EtherCAT 含 DCU/灵巧手/夹爪/腰部），T1 上唯一业务模块 `MotorModule`：em_run.sh 拉起 can0/can1（CAN FD 1M/5M、IRQ 绑 CPU2），直驱 14 关节（上肢 6@can0＋下肢 8@can1，module 0x34，每关节 offset/方向/限位/MIT 参数表）；② **§5 表中 `/aima/hal/joint/state`、`/aima/hal/imu/torso/state`「发布者离线」与 `/aima/hal/joint/command`「图上未出现」的真因**＝dm 这三个话题 `enable_backends=${TOPIC_ENABLE_BACKENDS}`=iceoryx（非 dev 模式即 iceoryx），**实际 1kHz/500Hz 持续发布，只是不出 DDS 图**（与相机话题 Publisher count 0 同一机制）；mc 生产配置（mc_T1.yaml）实证其为 joint/command 发布方、joint/state 与 imu/torso/state 订阅方——mc↔dm 构成 iceoryx 板内 1kHz 闭环；唯一 DDS 出口＝500ms `/aima/hds/diagnostic_list`；**orin 侧对这几个话题的 ros2 订阅跨板收不到数据**（iceoryx 不跨板，实取躯干数据走 legged_odom 转发的 `/odom_torso`/`/torso_imu_orientation`）；③ **orin 无 device_manager**（soc1 启动清单中该项被注释，`t1_v2d0_soc1_config.yaml`）；广义「设备管理」在 T1 Pro 上分片：dm=执行器总线、hal_sensor=本体传感、housekeeper=外部设备/网络、process_manager=进程生命周期，无单一统管模块。
+6. **版本基线**：采集于整机固件 `t2-3`（rk 设备树型号）/ orin JetPack（driver 540.4.0）；接口清单与该版本强相关。
 
 <a id="sec9"></a>
 

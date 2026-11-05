@@ -40,16 +40,16 @@
 <text x="137" y="468" font-family="Noto Sans CJK SC" font-size="12.6" fill="#2c3a47">audio_manager（★播放/音量）· display_ui 胸屏</text>
 <text x="137" y="485" font-family="Noto Sans CJK SC" font-size="12.6" fill="#2c3a47">lumina 灯效 · scene_engine 场景</text>
 <rect x="512" y="132" width="258" height="380" rx="6" fill="#f7fafe" stroke="#a8b4c0" stroke-width="1"/>
-<rect x="518" y="140" width="246" height="101" rx="5" fill="#e9f2fc" stroke="#4f7396" stroke-width="2"/>
+<rect x="518" y="140" width="246" height="84" rx="5" fill="#e9f2fc" stroke="#4f7396" stroke-width="2"/>
 <text x="527" y="161" font-family="Noto Sans CJK SC" font-size="13.6" fill="#17456e" font-weight="700">mc 运动控制</text>
 <text x="527" y="180" font-family="Noto Sans CJK SC" font-size="12.6" fill="#2c3a47">★SetMcAction·velocity（指令下发）</text>
 <text x="527" y="197" font-family="Noto Sans CJK SC" font-size="12.6" fill="#2c3a47">★mc/common/state（全量状态）</text>
 <text x="527" y="214" font-family="Noto Sans CJK SC" font-size="12.6" fill="#2c3a47">CPU3 独占：RL·WBC·动作 FSM</text>
-<text x="527" y="231" font-family="Noto Sans CJK SC" font-size="12.6" fill="#2c3a47">CPU2：CAN 硬中断 + dm 设备 IO</text>
-<rect x="518" y="246" width="246" height="67" rx="5" fill="#e9f2fc" stroke="#4f7396" stroke-width="2"/>
-<text x="527" y="267" font-family="Noto Sans CJK SC" font-size="13.6" fill="#17456e" font-weight="700">device_manager 设备实时 IO</text>
-<text x="527" y="286" font-family="Noto Sans CJK SC" font-size="12.6" fill="#2c3a47">SCHED_RR 钉 CPU2</text>
-<text x="527" y="303" font-family="Noto Sans CJK SC" font-size="12.6" fill="#2c3a47">realtime.slice（§2.4）</text>
+<rect x="518" y="229" width="246" height="84" rx="5" fill="#e9f2fc" stroke="#4f7396" stroke-width="2"/>
+<text x="527" y="250" font-family="Noto Sans CJK SC" font-size="13.6" fill="#17456e" font-weight="700">device_manager 本体执行器 HAL</text>
+<text x="527" y="269" font-family="Noto Sans CJK SC" font-size="12.6" fill="#2c3a47">14 关节 CAN（前身 hal_ethercat）</text>
+<text x="527" y="286" font-family="Noto Sans CJK SC" font-size="12.6" fill="#2c3a47">joint/state@1kHz·躯干IMU iceoryx</text>
+<text x="527" y="303" font-family="Noto Sans CJK SC" font-size="12.6" fill="#2c3a47">6×SCHED_RR 钉 CPU2（中断同核）</text>
 <rect x="822" y="132" width="296" height="380" rx="6" fill="#f7fafe" stroke="#a8b4c0" stroke-width="1"/>
 <rect x="828" y="140" width="284" height="84" rx="5" fill="#e9f2fc" stroke="#4f7396" stroke-width="2"/>
 <text x="837" y="161" font-family="Noto Sans CJK SC" font-size="13.6" fill="#17456e" font-weight="700">导航与跟随</text>
